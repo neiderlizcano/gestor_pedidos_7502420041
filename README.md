@@ -1,37 +1,46 @@
 # Gestor de Pedidos
 
-Aplicación móvil desarrollada para la asignatura Desarrollo de Apps.
+Aplicación móvil desarrollada en Kodular para gestionar pedidos de forma segura mediante Supabase.
 
-## Corte 1
+## Desarrollador
 
-Aplicación desarrollada en Kodular con persistencia local y uso de sensores.
+**Neider Lizcano**  
+Estudiante de Ingeniería de Software.
 
-## Ejercicio asignado
+## Funcionalidades
 
-Ejercicio 17 - Pedidos.
-
-Campos:
-
-- id
-- fecha
-- fechaEnvio
-- fechaEntrega
-- cliente
-- proveedor
-- valor
-- estado
-- país
-- departamento
-- ciudad
-- nomenclaturaVivienda
-- propina
+- Registro, Login y recuperación de contraseña.
+- CRUD completo de pedidos.
+- Perfil de usuario.
+- Reportes por estado y ciudad.
+- Persistencia local con TinyDB.
+- Seguridad mediante RLS.
+- Location Sensor.
+- Accelerometer Sensor.
+- Cierre de sesión.
 
 ## Tecnologías
 
 - Kodular
-- Git
-- GitHub
+- Supabase
+- PostgreSQL
+- TinyDB
+- Git y GitHub
 
-## Estado del proyecto
+## Base de datos
 
-En desarrollo.
+Tablas principales:
+
+- `usuarios`
+- `pedidos`
+
+Cada usuario solo puede acceder a sus propios pedidos mediante políticas RLS.
+
+## Sensores
+
+- `Location Sensor`: obtiene la ubicación actual para los pedidos.
+- `Accelerometer Sensor`: permite actualizar pedidos mediante movimiento del dispositivo.
+
+## Estado
+
+Proyecto funcional y probado en dispositivo Android.
