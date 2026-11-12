@@ -30,8 +30,20 @@ y Auth Admin; nunca recibe un UUID objetivo ni utiliza el adaptador JDBC antiguo
 Solo responde 204 tras confirmacion remota. Errores de autenticacion son 401,
 errores remotos 502/503 y timeout sin confirmacion 504; 409 se reserva exclusivamente
 para Storage identificado con certeza, no para mensajes genericos de base de datos.
-Requiere la configuracion HTTPS documentada y una instalacion posterior autorizada;
-**no esta desplegado**. Ver [diseno, configuracion y limites](../database/DELETE_CUENTA_PROPIA.md).
+Estado comunicado para el PR #12: **Edge Function desplegada en produccion** y
+**DELETE integral probado desde Spring Boot local contra Supabase de pruebas**,
+con HTTP 204, eliminacion de la cuenta temporal y conservacion de otra cuenta.
+Render esta configurado y saludable (health 200, ruta protegida sin JWT 401), pero
+**el endpoint DELETE de Spring Boot en Render esta pendiente del merge**.
+No se ha ejecutado una eliminacion productiva real. Validacion previa: 82 pruebas
+Java, 70 pruebas Edge y TypeScript aprobado; no repetidos en esta actualizacion.
+Ver [diseno, configuracion y limites](../database/DELETE_CUENTA_PROPIA.md).
+
+La eliminacion fisica es irreversible mediante la API; revertir un despliegue no
+recupera los datos. Storage y subidas concurrentes requieren validacion separada.
+Los JWT ya emitidos pueden seguir siendo aceptados por otros endpoints hasta exp;
+la app debe limpiar su sesion tras 204. La Edge valida getUser y puede invocarse
+directamente por usuarios autenticados, sin esperar al merge del backend.
 
 Errores: `400` por solicitud invalida, `401` sin identidad confiable, `404` si falta
 el perfil propio y `409` si crear devuelve conflicto de UUID/correo. Los mensajes
@@ -39,7 +51,8 @@ son genericos, sin revelar perfiles ajenos. Se reutiliza el manejo comun
 `application/problem+json` de pedidos, sin exponer causas JDBC ni datos recibidos.
 
 Las pruebas MockMvc usan casos, adaptador de identidad y filtros reales, repositorio
-simulado, firmas ES256 efimeras y JWKS local. Las pruebas HTTP completas de extremo
-a extremo con PostgreSQL real y las operaciones reales INSERT, UPDATE y DELETE
-siguen pendientes; estos tests locales no las sustituyen. Ver el
+simulado, firmas ES256 efimeras y JWKS local. La prueba integral del DELETE de cuenta
+propia en el entorno de pruebas ya fue comunicada como satisfactoria; no acredita
+el resto del CRUD ni la eliminacion en produccion. Los pendientes historicos de
+otras operaciones no se consideran cerrados por esa evidencia. Ver el
 [estado de validacion de Fase 5](INTEGRACION_REPORTES_RLS.md#resultados-comprobados-al-cierre-de-fase-5).
