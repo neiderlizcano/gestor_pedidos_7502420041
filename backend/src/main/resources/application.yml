@@ -1,4 +1,5 @@
 server:
+  address: 0.0.0.0
   port: ${PORT:8080}
 
 spring:
@@ -51,6 +52,7 @@ spring:
       data-source-properties:
         # Requiere una CA de confianza externa para verificar certificado y hostname.
         sslmode: verify-full
+        sslrootcert: ${DB_SSL_ROOT_CERT}
   sql:
     init:
       mode: never
