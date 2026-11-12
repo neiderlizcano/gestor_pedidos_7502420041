@@ -1,10 +1,15 @@
 # Integracion JDBC/RLS opcional (solo lectura)
 
 Las pruebas normales siguen ejecutandose con `mvn clean test`, sin PostgreSQL.
-`JdbcRlsIT` no coincide con los nombres de Surefire. Failsafe se incorpora a `verify`
+`JdbcRlsIT` y `ReportesRlsIT` no coinciden con los nombres de Surefire. Failsafe se incorpora a `verify`
 solo con `RUN_DB_INTEGRATION=true`; JUnit exige ademas esa misma variable, incluso
 si alguien activa el perfil Maven `db-integration` manualmente. No hay conexiones
 ni lecturas de configuracion JDBC en inicializadores estaticos.
+
+Ambas suites reutilizan `SoporteJdbcRlsIT` para la conexion, el rol real, SSL,
+solo lectura y errores sin datos sensibles. Se conservan las seis pruebas de
+`JdbcRlsIT`; las doce pruebas nuevas de reportes y sus requisitos se describen
+en [INTEGRACION_REPORTES_RLS.md](INTEGRACION_REPORTES_RLS.md).
 
 ## Preparacion externa
 
@@ -73,8 +78,17 @@ No ejecutar este procedimiento durante una tarea que prohiba conexiones reales.
   causas del driver, UUID ni resultados de filas. No publicar informes sin revision.
 - Estas pruebas estan preparadas, no ejecutadas contra PostgreSQL durante su creacion.
 
-**Verificacion posterior:** se aprobaron 264 pruebas locales y 6 pruebas reales de
+**Validacion historica de persistencia:** se aprobaron 264 pruebas locales y 6 pruebas reales de
 integracion JDBC/RLS: conexion, contexto de identidad, aislamiento de lectura A/B,
 rollback de lectura y reutilizacion de conexiones, segun la cobertura implementada.
 Las operaciones reales de escritura (`INSERT`, `UPDATE` y `DELETE`) todavia no
 han sido verificadas mediante pruebas de integracion y quedan pendientes.
+
+**Cierre de Fase 5:** la ejecucion local registra 692 pruebas, 0 fallos, 0 errores
+y 1 omitida (el test de ausencia de bandera se desactiva cuando esta esta activa).
+Las 6 pruebas reales JDBC/RLS aprobadas corresponden a una ejecucion anterior.
+La suite real de reportes registra 12 pruebas: 10 aprobadas y 2 de paginacion
+omitidas por sus requisitos de datos; BUILD SUCCESS no acredita esos casos omitidos.
+Ver [resultados y limitaciones](INTEGRACION_REPORTES_RLS.md#resultados-comprobados-al-cierre-de-fase-5).
+Siguen pendientes las pruebas HTTP completas de extremo a extremo contra
+PostgreSQL y las operaciones reales de escritura INSERT, UPDATE y DELETE.
