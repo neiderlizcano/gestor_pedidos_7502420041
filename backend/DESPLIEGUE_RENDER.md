@@ -1,9 +1,34 @@
-# Preparacion para Render (Docker, sin desplegar)
+# Despliegue en Render (Docker)
 
-Esta tarea solo prepara archivos y validaciones locales. No crea un servicio,
-no sube secretos ni conecta Supabase. Crear el servicio en Render puede iniciar
-el primer despliegue: realizar los pasos del panel **solo cuando se autorice**.
-No hay commit ni push de esta preparacion; Render no puede usar cambios locales.
+## Estado actual y evidencias reportadas
+
+Servicio publico: https://gestor-pedidos-api.onrender.com
+
+El servicio fue desplegado y probado desde `feature/despliegue-render`, con el
+perfil Spring `persistencia`. La preparacion Docker/configuracion esta publicada
+en el commit `ba5df616ffeb99181bb4258f1711f342c2883024`.
+Todavia falta integrar esta rama en `UND_2_Arq_Hexagonal` y activar Auto-Deploy
+sobre la rama integrada. **El despliegue automatico no se considera cumplido.**
+Esta actualizacion es documental: no cambia Render ni realiza otro despliegue.
+
+Evidencias de ejecucion real reportadas por el responsable del proyecto; no
+reproducidas durante esta consolidacion documental:
+
+| Comprobacion | Resultado reportado |
+| --- | --- |
+| `GET /actuator/health` | `200`, estado `UP` |
+| Autenticacion JWT | JWT ES256 validado correctamente |
+| Acceso a ruta protegida sin token | `401` |
+| `GET /api/v1/pedidos` con JWT | `200` |
+| `POST /api/v1/usuarios` con JWT | `201`, perfil creado |
+| `GET /api/v1/usuarios/me` con JWT | `200` |
+| `PUT /api/v1/usuarios/me` con JWT | `200`, nombre actualizado y persistido |
+
+Tambien se reporto el inicio correcto de la conexion JDBC. Estas evidencias
+acreditan los flujos indicados, no el CRUD completo, los cuatro reportes ni el
+aislamiento de extremo a extremo con dos usuarios. Los pendientes de Fase 5 no
+se consideran cerrados por estos resultados parciales. No se publican tokens,
+credenciales, datos personales ni contenido del certificado.
 
 ## Construccion y ejecucion
 
@@ -73,11 +98,14 @@ No habilitar logs de entorno, trazas JDBC/driver ni detalles de salud publicos.
    el **Session pooler** compatible con su red y la CA de ese endpoint. No usar
    Transaction pooler: su comportamiento no ha sido validado para este backend.
 
-## Pasos exactos del futuro despliegue
+## Referencia de configuracion y despliegues posteriores
 
-Antes de abrir el panel: revisar y publicar estos cambios mediante un proceso
-Git autorizado aparte; elegir la rama remota que realmente los contenga. La rama
-local de preparacion es `feature/despliegue-render`, aun sin commit/push.
+El servicio existente usa `feature/despliegue-render`, ya publicada. Los pasos
+siguientes se conservan como referencia para recrearlo o realizar despliegues
+posteriores autorizados; no implican crear otro servicio durante esta tarea.
+Tras integrar los cambios en `UND_2_Arq_Hexagonal`, queda pendiente seleccionar
+la rama integrada en Render, activar Auto-Deploy y verificar un despliegue
+automatico con evidencia del commit desplegado. No se ha realizado ese cambio.
 
 1. En Render: **New > Web Service > conectar repositorio Git**
    `neiderlizcano/gestor_pedidos_7502420041`. Seleccionar la rama remota autorizada
@@ -92,7 +120,7 @@ local de preparacion es `feature/despliegue-render`, aun sin commit/push.
    | Docker Build Context Directory | `.` |
    | Docker Command | Vacio: conservar `ENTRYPOINT` |
    | Health Check Path | `/actuator/health` |
-   | Auto-Deploy | `Off` (o deshabilitado) para controlar cambios posteriores |
+   | Auto-Deploy | `Off` en el flujo documentado; activacion y verificacion pendientes tras integrar la rama |
 
    Elegir nombre, region y plan adecuados. Las rutas Docker son relativas a
    `backend`, por lo que no escribir `backend/Dockerfile` ni usar contexto raiz.
@@ -112,7 +140,10 @@ local de preparacion es `feature/despliegue-render`, aun sin commit/push.
    antes de afirmar un despliegue funcional. Siguen vigentes los pendientes de
    [Fase 5](INTEGRACION_REPORTES_RLS.md#resultados-comprobados-al-cierre-de-fase-5).
 
-## Validacion local sin base de datos
+## Referencia de validacion local sin base de datos
+
+Los comandos siguientes documentan el procedimiento local; no se repiten durante
+esta consolidacion. Los resultados historicos se conservan al final.
 
 Con `RUN_DB_INTEGRATION`, `SPRING_PROFILES_ACTIVE`, `SPRING_APPLICATION_JSON`,
 variables `DB_*` y configuracion externa retiradas del **proceso hijo**, ejecutar
@@ -128,8 +159,9 @@ Las pruebas usan issuer/JWKS sinteticos y servidores JWKS locales: no requieren
 Supabase. Comprueban arranque sin DataSource, health HTTP publico, puerto y
 binding de CA ficticia sin leer certificados ni abrir el pool.
 
-**Limitacion de esta preparacion:** Docker no esta disponible en PATH en el
-equipo de trabajo; no se ejecuta Docker ni se acredita una imagen construida.
+**Limitacion de la validacion local:** Docker no estuvo disponible en PATH en el
+equipo de preparacion; no se construyo ni ejecuto la imagen localmente.
+Esto no niega el despliegue real posterior reportado en Render.
 El empaquetado Maven local no sustituye la validacion de imagen/grupo/montaje.
 En un equipo con Docker, validar posteriormente (sin secretos ni integraciones):
 
@@ -141,7 +173,7 @@ docker run --rm -p 8080:8080 -e PORT=8080 -e SUPABASE_AUTH_ISSUER=https://supaba
 No activar `persistencia` en ese smoke test; comprobar health desde otra terminal.
 No declara validada la conectividad, CA real ni permisos del montaje de Render.
 
-## Resultado local de la tarea 6.1
+## Resultado local historico de la tarea 6.1 (previo al despliegue)
 
 - `clean test`: **693 pruebas, 0 fallos, 0 errores, 0 omitidas; BUILD SUCCESS**.
   No se generaron reportes Failsafe ni se ejecutaron las suites JDBC/RLS reales.
@@ -151,8 +183,10 @@ No declara validada la conectividad, CA real ni permisos del montaje de Render.
 - Smoke test del JAR con Java 17, issuer/JWKS `.invalid` y sin perfil/DB/CA:
   `PORT` inyectado respetado, listener en todas las interfaces, health publico
   `200 UP` y `/api/v1/pedidos` sin JWT devuelve `401`. Solo peticiones loopback.
-- `git diff --check` sin errores. Sin secretos incorporados, conexiones Supabase,
-  despliegue, commit ni push. Docker y montaje CA real siguen **sin validar**.
+- `git diff --check` sin errores. En aquella fase local no se incorporaron secretos
+  ni se realizaron conexiones Supabase, despliegue, commit o push. Posteriormente
+  se publico la preparacion y se reporto el despliegue descrito al inicio.
+  Docker local y permisos del montaje CA no tienen validacion especifica registrada.
 
 Referencias oficiales: [Docker](https://render.com/docs/docker),
 [secretos Docker](https://render.com/docs/docker-secrets),
