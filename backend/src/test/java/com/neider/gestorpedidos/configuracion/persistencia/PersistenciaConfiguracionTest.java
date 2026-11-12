@@ -53,7 +53,21 @@ class PersistenciaConfiguracionTest {
             assertThat(context.getEnvironment().getProperty("DB_URL")).isNull();
             assertThat(context.getEnvironment().getProperty("DB_USERNAME")).isNull();
             assertThat(context.getEnvironment().getProperty("DB_PASSWORD")).isNull();
+            assertThat(context.getEnvironment().getProperty("DB_SSL_ROOT_CERT")).isNull();
+            assertThat(context.getEnvironment().getProperty("server.address")).isEqualTo("0.0.0.0");
+            assertThat(context.getEnvironment().getProperty("server.port")).isEqualTo("8080");
         });
+    }
+
+    @Test
+    void puertoDelEntornoSobrescribeElValorLocalSinActivarJdbc() {
+        contexto.withInitializer(context -> context.getEnvironment().getPropertySources()
+                .addFirst(new MapPropertySource("render-sintetico", Map.of("PORT", "10000"))))
+                .run(context -> {
+                    assertThat(context).hasNotFailed().doesNotHaveBean(DataSource.class);
+                    assertThat(context.getEnvironment().getProperty("server.port")).isEqualTo("10000");
+                    assertThat(context.getEnvironment().getProperty("server.address")).isEqualTo("0.0.0.0");
+                });
     }
 
     @Test
@@ -89,6 +103,8 @@ class PersistenciaConfiguracionTest {
             assertThat(dataSource.getIdleTimeout()).isEqualTo(600000);
             assertThat(dataSource.getMaxLifetime()).isEqualTo(1800000);
             assertThat(dataSource.getDataSourceProperties()).containsEntry("sslmode", "verify-full");
+            assertThat(dataSource.getDataSourceProperties()).containsEntry("sslrootcert",
+                    configuracionSintetica().get("DB_SSL_ROOT_CERT"));
             assertThat(context.getEnvironment().getProperty("spring.sql.init.mode")).isEqualTo("never");
             assertThat(context.getEnvironment().getProperty(
                     "spring.security.oauth2.resourceserver.jwt.issuer-uri"))
@@ -142,6 +158,8 @@ class PersistenciaConfiguracionTest {
         propiedades.put("DB_URL", "jdbc:postgresql://db.invalid:5432/pruebas");
         propiedades.put("DB_USERNAME", "app_pruebas");
         propiedades.put("DB_PASSWORD", "solo-pruebas");
+        // Solo se comprueba el binding: esta ruta no existe ni se lee ningun certificado.
+        propiedades.put("DB_SSL_ROOT_CERT", "/ruta-sintetica/supabase-ca.crt");
         return propiedades;
     }
 
