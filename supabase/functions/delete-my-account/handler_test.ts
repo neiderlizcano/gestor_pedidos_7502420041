@@ -196,3 +196,150 @@ Deno.test("presupuesto agotado es 504 sin reintento ni DELETE", async () => {
   igual((await handler(request(await token()))).status, 504);
   igual(llamadas, 1);
 });
+
+function flujo(chunks: Uint8Array[] = []): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    start(controlador) {
+      for (const chunk of chunks) controlador.enqueue(chunk);
+      controlador.close();
+    },
+  });
+}
+
+for (const [nombre, cuerpo, headers] of [
+  ["null sin longitud", () => null, {}],
+  ["null longitud cero", () => null, { "Content-Length": "0" }],
+  ["flujo vacio sin longitud", () => flujo(), {}],
+  ["flujo vacio longitud cero", () => flujo(), { "Content-Length": "0" }],
+  ["chunks vacios", () => flujo([new Uint8Array(), new Uint8Array()]), {}],
+  ["chunked vacio", () => flujo(), { "Transfer-Encoding": "chunked" }],
+  ["chunked mayusculas", () => flujo([new Uint8Array()]), { "Transfer-Encoding": "Chunked" }],
+] as [string, () => ReadableStream<Uint8Array> | null, Record<string, string>][]) {
+  Deno.test("acepta cuerpo realmente vacio: " + nombre, async () => {
+    const { handler, llamadas } = remoto();
+    const req = request(await token(), { body: cuerpo(), headers: { ...headers, "X-Usuario-Id": B } });
+    const response = await handler(req);
+    igual(response.status, 204);
+    igual(llamadas.length, 3);
+    igual(llamadas.filter((x) => x.method === "DELETE").map((x) => x.path), ["/auth/v1/admin/users/" + A]);
+    igual(req.body?.locked ?? false, false);
+  });
+}
+
+async function verificarRechazo(req: Request, codigo: string) {
+  const { handler, llamadas } = remoto();
+  const avisos: unknown[][] = [];
+  const original = console.warn;
+  console.warn = (...datos: unknown[]) => { avisos.push(datos); };
+  try {
+    const response = await handler(req);
+    igual(response.status, 400);
+    igual(await response.json(), { code: "INVALID_REQUEST" });
+    igual(avisos, [[codigo]]);
+    igual(llamadas.length, 0);
+    igual(req.body?.locked ?? false, false);
+  } finally {
+    console.warn = original;
+  }
+}
+
+for (const [nombre, headers] of [
+  ["longitud y chunked", { "Content-Length": "0", "Transfer-Encoding": "chunked" }],
+  ["longitud positiva", { "Content-Length": "1" }],
+  ["longitud negativa", { "Content-Length": "-1" }],
+  ["longitud no decimal", { "Content-Length": "0x0" }],
+  ["longitud vacia", { "Content-Length": "" }],
+  ["longitud duplicada", { "Content-Length": "0, 0" }],
+  ["codificacion no soportada", { "Transfer-Encoding": "gzip, chunked" }],
+  ["chunked duplicado", { "Transfer-Encoding": "chunked, chunked" }],
+  ["transferencia vacia", { "Transfer-Encoding": "" }],
+] as [string, Record<string, string>][]) {
+  Deno.test("rechaza framing: " + nombre, async () => {
+    await verificarRechazo(request(await token(), { body: flujo(), headers }), "FRAMING_REJECTED");
+  });
+}
+
+for (const [nombre, contenido, headers] of [
+  ["un byte", new Uint8Array([0]), {}],
+  ["espacio", new TextEncoder().encode(" "), {}],
+  ["JSON con UUID ajeno", new TextEncoder().encode(JSON.stringify({ id: B })), {}],
+  ["longitud cero no oculta bytes", new Uint8Array([1]), { "Content-Length": "0" }],
+  ["chunked con contenido", new Uint8Array([1]), { "Transfer-Encoding": "chunked" }],
+] as [string, Uint8Array, Record<string, string>][]) {
+  Deno.test("rechaza contenido tras chunks vacios: " + nombre, async () => {
+    let cancelado = false;
+    const body = new ReadableStream<Uint8Array>({
+      start(c) { c.enqueue(new Uint8Array()); c.enqueue(contenido); },
+      cancel() { cancelado = true; },
+    });
+    await verificarRechazo(request(await token(), { body, headers }), "BODY_NONEMPTY");
+    igual(cancelado, true); // Rechaza sin esperar EOF.
+  });
+}
+
+Deno.test("flujo bloqueado agota plazo y libera lector aunque cancel no termine", async () => {
+  let cancelado = false;
+  const body = new ReadableStream<Uint8Array>({
+    cancel() { cancelado = true; return new Promise<void>(() => {}); },
+  });
+  const inicio = performance.now();
+  await verificarRechazo(request(await token(), { body }), "BODY_READ_TIMEOUT");
+  igual(cancelado, true);
+  igual(performance.now() - inicio < 5000, true);
+});
+
+Deno.test("chunks vacios continuos tambien tienen plazo", async () => {
+  let cancelado = false;
+  const body = new ReadableStream<Uint8Array>({
+    pull(c) { c.enqueue(new Uint8Array()); },
+    cancel() { cancelado = true; },
+  });
+  await verificarRechazo(request(await token(), { body }), "BODY_READ_TIMEOUT");
+  igual(cancelado, true);
+});
+
+for (const previo of [true, false]) {
+  Deno.test("rechaza flujo abortado " + (previo ? "antes" : "durante lectura"), async () => {
+    const controlador = new AbortController();
+    let cancelado = false;
+    const body = new ReadableStream<Uint8Array>({
+      pull() { if (!previo) controlador.abort(); },
+      cancel() { cancelado = true; },
+    });
+    if (previo) controlador.abort();
+    await verificarRechazo(request(await token(), { body, signal: controlador.signal }), "BODY_READ_ERROR");
+    igual(cancelado, true);
+  });
+}
+
+Deno.test("error de lectura no revela causa ni llama a Auth", async () => {
+  const body = new ReadableStream<Uint8Array>({
+    pull(c) { c.error(new Error("detalle sintetico que no debe registrarse")); },
+  });
+  await verificarRechazo(request(await token(), { body }), "BODY_READ_ERROR");
+});
+
+for (const [sufijo, codigo] of [["/" + B, "PATH_REJECTED"], ["?id=" + B, "QUERY_REJECTED"], ["?", "QUERY_REJECTED"]]) {
+  Deno.test("diagnostico constante sin URL: " + codigo + sufijo.length, async () => {
+    await verificarRechazo(request(await token(), { body: flujo() }, URL_FUNCION + sufijo), codigo);
+  });
+}
+
+Deno.test("ruta corta tambien acepta flujo vacio", async () => {
+  const { handler, llamadas } = remoto();
+  igual((await handler(request(await token(), { body: flujo() }, env.url + "/delete-my-account"))).status, 204);
+  igual(llamadas.filter((x) => x.method === "DELETE").map((x) => x.path), ["/auth/v1/admin/users/" + A]);
+});
+
+Deno.test("flujo vacio no permite JWT de firma ajena", async () => {
+  const { handler, llamadas } = remoto();
+  igual((await handler(request(await token({}, true), { body: flujo() }))).status, 401);
+  igual(llamadas.length, 0);
+});
+
+Deno.test("flujo vacio no permite identidad getUser discordante", async () => {
+  const { handler, llamadas } = remoto({ userId: B });
+  igual((await handler(request(await token(), { body: flujo() }))).status, 401);
+  igual(llamadas.length, 1);
+  igual(llamadas.some((x) => x.method === "DELETE"), false);
+});

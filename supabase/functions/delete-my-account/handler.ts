@@ -2,6 +2,62 @@ import { withSupabase, type SupabaseEnv } from "@supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const UUID_CERO = "00000000-0000-0000-0000-000000000000";
+const LIMITE_LECTURA_MS = 2000;
+type RechazoSolicitud = "PATH_REJECTED" | "QUERY_REJECTED" | "FRAMING_REJECTED"
+  | "BODY_NONEMPTY" | "BODY_READ_ERROR" | "BODY_READ_TIMEOUT";
+
+function rechazarSolicitud(req: Request, code: RechazoSolicitud): Response {
+  console.warn(code); // Solo codigos constantes; nunca datos de la solicitud.
+  if (req.body && !req.body.locked) void req.body.cancel().catch(() => {});
+  return respuesta(400);
+}
+
+async function comprobarCuerpoVacio(req: Request): Promise<RechazoSolicitud | null> {
+  if (req.signal.aborted || req.bodyUsed) return "BODY_READ_ERROR";
+  if (req.body === null) return null;
+  let lector: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  let completo = false;
+  let reloj: ReturnType<typeof setTimeout> | undefined;
+  let abortar: (() => void) | undefined;
+  const plazo = performance.now() + LIMITE_LECTURA_MS;
+  const interrupcion = new Promise<"BODY_READ_ERROR" | "BODY_READ_TIMEOUT">((resolve) => {
+    abortar = () => resolve("BODY_READ_ERROR");
+    req.signal.addEventListener("abort", abortar, { once: true });
+    reloj = setTimeout(() => resolve("BODY_READ_TIMEOUT"), LIMITE_LECTURA_MS);
+  });
+  try {
+    lector = req.body.getReader();
+    const reader = lector;
+    const lectura = async (): Promise<RechazoSolicitud | null> => {
+      while (true) {
+        if (req.signal.aborted) return "BODY_READ_ERROR";
+        // Tambien limita chunks vacios continuos que no ceden al timer.
+        if (performance.now() >= plazo) return "BODY_READ_TIMEOUT";
+        const resultado = await reader.read();
+        if (req.signal.aborted) return "BODY_READ_ERROR";
+        if (performance.now() >= plazo) return "BODY_READ_TIMEOUT";
+        if (resultado.done) {
+          completo = true;
+          return null;
+        }
+        if (!(resultado.value instanceof Uint8Array)) return "BODY_READ_ERROR";
+        if (resultado.value.byteLength > 0) return "BODY_NONEMPTY";
+      }
+    };
+    // Una sola carrera: no acumular callbacks por cada chunk vacio.
+    return await Promise.race([lectura(), interrupcion]);
+  } catch {
+    return "BODY_READ_ERROR";
+  } finally {
+    clearTimeout(reloj);
+    if (abortar) req.signal.removeEventListener("abort", abortar);
+    // No esperar a un cancel() de origen que podria no resolver nunca.
+    if (lector) {
+      if (!completo) void lector.cancel().catch(() => {});
+      lector.releaseLock();
+    }
+  }
+}
 
 function respuesta(status: number): Response {
   const headers = new Headers({ "Cache-Control": "no-store" });
@@ -27,14 +83,22 @@ export function createDeleteMyAccountHandler(options: {
     const bearer = /^Bearer ([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/i
       .exec(req.headers.get("Authorization") ?? "");
     if (!bearer) return respuesta(401);
-    // Rechazo conservador de streams de cuerpo, incluso de longitud desconocida.
     const path = new URL(req.url).pathname;
-    if (!["/delete-my-account", "/functions/v1/delete-my-account"].includes(path)
-      || req.url.includes("?") || req.body !== null
-      || req.headers.has("Transfer-Encoding")
-      || (req.headers.has("Content-Length") && req.headers.get("Content-Length") !== "0")) {
-      return respuesta(400);
+    if (!["/delete-my-account", "/functions/v1/delete-my-account"].includes(path)) {
+      return rechazarSolicitud(req, "PATH_REJECTED");
     }
+    if (req.url.includes("?")) return rechazarSolicitud(req, "QUERY_REJECTED");
+    const longitud = req.headers.get("Content-Length");
+    const transferencia = req.headers.get("Transfer-Encoding");
+    // Solo framing de cuerpo vacio: decimal cero o chunked, nunca ambos.
+    // Headers combina duplicados con comas, que estas validaciones rechazan.
+    if ((longitud !== null && !/^0+$/.test(longitud))
+      || (transferencia !== null && transferencia.toLowerCase() !== "chunked")
+      || (longitud !== null && transferencia !== null)) {
+      return rechazarSolicitud(req, "FRAMING_REJECTED");
+    }
+    const rechazo = await comprobarCuerpoVacio(req);
+    if (rechazo) return rechazarSolicitud(req, rechazo);
 
     let agotado = false;
     let confirmadoPorAuth = false;
