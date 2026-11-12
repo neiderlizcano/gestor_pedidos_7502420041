@@ -1,9 +1,20 @@
 server:
+  address: 0.0.0.0
   port: ${PORT:8080}
 
 spring:
   application:
     name: gestor-pedidos
+  # El DataSource se declara explicitamente solo con el perfil persistencia.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${SUPABASE_AUTH_ISSUER}
+          jwk-set-uri: ${SUPABASE_JWKS_URI}
 
 management:
   endpoints:
@@ -13,3 +24,35 @@ management:
   endpoint:
     health:
       show-details: never
+
+# No habilitar trazas JDBC/driver: los parametros incluyen identidad y datos personales.
+logging:
+  level:
+    org.springframework.jdbc: "OFF"
+    org.springframework.transaction: "OFF"
+    org.postgresql: "OFF"
+    com.zaxxer.hikari: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: persistencia
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 0
+      connection-timeout: 10000
+      validation-timeout: 5000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      data-source-properties:
+        # Requiere una CA de confianza externa para verificar certificado y hostname.
+        sslmode: verify-full
+        sslrootcert: ${DB_SSL_ROOT_CERT}
+  sql:
+    init:
+      mode: never

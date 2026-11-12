@@ -1,0 +1,4 @@
+<configuration>
+    <!-- JVM de Failsafe: no registrar SQL, parametros, identidades ni errores del driver. -->
+    <root level="OFF"/>
+</configuration>

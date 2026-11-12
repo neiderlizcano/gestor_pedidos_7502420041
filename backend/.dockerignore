@@ -1,6 +1,22 @@
-target/
-.git/
-.gitignore
-.idea/
-*.iml
-*.log
+# Lista permitida: Render tambien coloca Secret Files en la raiz del contexto.
+# No incorporar .env, certificados, credenciales, target ni archivos locales.
+**
+!pom.xml
+!src/
+!src/**
+# Defensa adicional dentro de src; los secretos nunca deben guardarse alli.
+**/.env
+**/.env.*
+**/*.pem
+**/*.crt
+**/*.cer
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.keystore
+**/secrets
+**/credentials*
+**/AGENTS.md
+**/opencode.json
+# Revisar cualquier nuevo recurso dentro de src antes de construir.
