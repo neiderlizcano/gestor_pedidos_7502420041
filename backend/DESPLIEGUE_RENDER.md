@@ -4,15 +4,21 @@
 
 Servicio publico: https://gestor-pedidos-api.onrender.com
 
-El servicio fue desplegado y probado desde `feature/despliegue-render`, con el
+Historicamente, el servicio fue desplegado y probado desde `feature/despliegue-render`, con el
 perfil Spring `persistencia`. La preparacion Docker/configuracion esta publicada
 en el commit `ba5df616ffeb99181bb4258f1711f342c2883024`.
-Todavia falta integrar esta rama en `UND_2_Arq_Hexagonal` y activar Auto-Deploy
-sobre la rama integrada. **El despliegue automatico no se considera cumplido.**
+La integracion del backend en `main` esta completada mediante el PR #10,
+commit `5f533c63f66bc16ad136bbdaf6782cb0e4303983`.
+Segun el estado reportado por el responsable, Render esta configurado para
+desplegar desde `main`, con Root Directory `backend/` y Auto-Deploy `On Commit`.
+El servicio esta `Live`; el ultimo commit desplegado visible reportado es
+`ba5df61`. Esto no demuestra un despliegue automatico desde `main`.
+**La prueba de activacion automatica por un nuevo commit sigue pendiente.**
 Esta actualizacion es documental: no cambia Render ni realiza otro despliegue.
 
-Evidencias de ejecucion real reportadas por el responsable del proyecto; no
-reproducidas durante esta consolidacion documental:
+Evidencias historicas de ejecucion real reportadas por el responsable del proyecto;
+no reproducidas durante esta actualizacion ni atribuidas al nuevo flujo automatico
+desde `main`:
 
 | Comprobacion | Resultado reportado |
 | --- | --- |
@@ -100,16 +106,18 @@ No habilitar logs de entorno, trazas JDBC/driver ni detalles de salud publicos.
 
 ## Referencia de configuracion y despliegues posteriores
 
-El servicio existente usa `feature/despliegue-render`, ya publicada. Los pasos
+El servicio existente tiene configurada la rama `main` y Auto-Deploy `On Commit`,
+segun el estado reportado; esta tarea no consulta ni modifica el panel. Los pasos
 siguientes se conservan como referencia para recrearlo o realizar despliegues
 posteriores autorizados; no implican crear otro servicio durante esta tarea.
-Tras integrar los cambios en `UND_2_Arq_Hexagonal`, queda pendiente seleccionar
-la rama integrada en Render, activar Auto-Deploy y verificar un despliegue
-automatico con evidencia del commit desplegado. No se ha realizado ese cambio.
+La integracion y la configuracion estan completadas; queda pendiente verificar
+que un nuevo commit integrado en `main` active el despliegue sin accion manual,
+registrando el commit disparador y el commit desplegado. La preparacion documental
+en una rama de trabajo no demuestra esa activacion.
 
 1. En Render: **New > Web Service > conectar repositorio Git**
-   `neiderlizcano/gestor_pedidos_7502420041`. Seleccionar la rama remota autorizada
-   con esta preparacion (no elegir una integradora que aun no la incluya).
+   `neiderlizcano/gestor_pedidos_7502420041`. Seleccionar `main`, que ya contiene
+   el backend y la preparacion del despliegue.
 2. Establecer los siguientes campos antes de crear el servicio:
 
    | Campo | Valor |
@@ -120,7 +128,8 @@ automatico con evidencia del commit desplegado. No se ha realizado ese cambio.
    | Docker Build Context Directory | `.` |
    | Docker Command | Vacio: conservar `ENTRYPOINT` |
    | Health Check Path | `/actuator/health` |
-   | Auto-Deploy | `Off` en el flujo documentado; activacion y verificacion pendientes tras integrar la rama |
+   | Branch | `main` |
+   | Auto-Deploy | `On Commit`; prueba de activacion automatica pendiente |
 
    Elegir nombre, region y plan adecuados. Las rutas Docker son relativas a
    `backend`, por lo que no escribir `backend/Dockerfile` ni usar contexto raiz.
@@ -132,7 +141,10 @@ automatico con evidencia del commit desplegado. No se ha realizado ese cambio.
    el despliegue manual. Desactivar Auto-Deploy no evita el primer despliegue.
 4. Solo con autorizacion: pulsar **Create Web Service / Deploy**. En servicios
    existentes, guardar entorno/archivos puede iniciar despliegue; preferir
-   **Save only**, si se ofrece, y luego **Manual Deploy > Deploy latest commit**.
+    **Save only**, si se ofrece, y luego **Manual Deploy > Deploy latest commit**.
+    Este procedimiento manual no sirve como evidencia de Auto-Deploy. Para la
+    prueba pendiente, observar el despliegue disparado por un nuevo commit en
+    `main` sin usar **Manual Deploy**; no se realiza esa prueba en esta tarea.
 5. Tras el despliegue, comprobar HTTPS `GET /actuator/health` sin Bearer: `200`
    y `{"status":"UP"}` sin detalles. Comprobar ademas el rechazo sin JWT de las
    rutas protegidas. No imprimir ni copiar tokens/credenciales a logs o tickets.
