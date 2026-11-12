@@ -117,17 +117,6 @@ on public.pedidos(ciudad);
 create index if not exists idx_pedidos_fecha
 on public.pedidos(fecha);
 
-create or replace function public.delete_my_account()
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-    delete from auth.users
-    where id = auth.uid();
-end;
-$$;
-
-revoke all on function public.delete_my_account() from public;
-grant execute on function public.delete_my_account() to authenticated;
+-- DELETE de cuenta propia: no instalar funciones privilegiadas desde este esquema.
+-- Estrategia activa preparada: Edge Function delete-my-account + Supabase Auth Admin.
+-- Ver DELETE_CUENTA_PROPIA.md. El SQL anterior es historico NO EJECUTAR en docs/.

@@ -1,0 +1,7 @@
+project_id = "gestor-pedidos"
+
+[functions.delete-my-account]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/delete-my-account/index.ts"
+import_map = "./functions/delete-my-account/deno.json"

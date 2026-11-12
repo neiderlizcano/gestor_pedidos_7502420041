@@ -1,0 +1,97 @@
+-- PREPARADA, NO EJECUTADA. Instalacion manual solo tras autorizacion.
+-- Leer ../DELETE_CUENTA_PROPIA.md: propietario/Storage son puertas de instalacion.
+-- Propietario esperado: supabase_auth_admin EXISTENTE, controlado por Supabase Auth.
+-- No crea roles, no concede DELETE sobre auth.users al backend, no cambia RLS.
+BEGIN;
+
+-- No reemplazar silenciosamente objetos preexistentes ni funciones public antiguas.
+DO $preflight$
+BEGIN
+    IF pg_catalog.to_regprocedure('public.delete_my_account()') IS NOT NULL THEN
+        RAISE EXCEPTION 'Requiere reconciliacion manual de funcion publica preexistente';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'supabase_auth_admin') THEN
+        RAISE EXCEPTION 'Falta propietario Auth controlado';
+    END IF;
+    IF NOT pg_catalog.has_table_privilege('supabase_auth_admin', 'auth.users', 'SELECT')
+        OR NOT pg_catalog.has_table_privilege('supabase_auth_admin', 'auth.users', 'DELETE')
+        OR NOT pg_catalog.has_function_privilege('supabase_auth_admin', 'auth.uid()', 'EXECUTE') THEN
+        RAISE EXCEPTION 'Privilegios del propietario pendientes de revision';
+    END IF;
+END;
+$preflight$;
+
+CREATE SCHEMA private AUTHORIZATION supabase_auth_admin;
+REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated, gestor_pedidos_jdbc, service_role;
+GRANT USAGE ON SCHEMA private TO authenticated;
+
+-- Solo lectura para detectar objetos propios; nunca elimina objetos ni cambia sus politicas.
+-- Esta concesion NO evita RLS: la funcion falla cerrada si la lectura puede filtrarse.
+GRANT USAGE ON SCHEMA storage TO supabase_auth_admin;
+GRANT SELECT ON TABLE storage.objects TO supabase_auth_admin;
+
+-- Puerta ejecutable: aborta y revierte tambien los GRANT si el definidor no ve todo.
+-- Requiere instalador con capacidad autorizada de SET ROLE; nunca el backend.
+SET LOCAL ROLE supabase_auth_admin;
+DO $visibility$
+BEGIN
+    IF pg_catalog.row_security_active('auth.users'::pg_catalog.regclass)
+        OR pg_catalog.row_security_active('storage.objects'::pg_catalog.regclass) THEN
+        RAISE EXCEPTION 'Bloqueo: visibilidad completa del propietario no demostrada';
+    END IF;
+END;
+$visibility$;
+SET LOCAL ROLE NONE;
+
+CREATE FUNCTION private.delete_my_account()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $function$
+DECLARE
+    identidad uuid;
+    eliminadas bigint;
+BEGIN
+    -- current_user es el definidor; el rol de entrada se comprueba por separado.
+    IF session_user <> 'gestor_pedidos_jdbc'
+        OR pg_catalog.current_setting('role', true) IS DISTINCT FROM 'authenticated' THEN
+        RAISE EXCEPTION 'Contexto de autenticacion no permitido' USING ERRCODE = '42501';
+    END IF;
+    BEGIN
+        identidad := auth.uid();
+    EXCEPTION WHEN invalid_text_representation THEN
+        RAISE EXCEPTION 'Identidad invalida' USING ERRCODE = '28000';
+    END;
+    IF identidad IS NULL OR identidad = '00000000-0000-0000-0000-000000000000'::uuid THEN
+        RAISE EXCEPTION 'Identidad requerida' USING ERRCODE = '28000';
+    END IF;
+
+    -- Nunca interpretar filas ocultas por RLS como ausencia de Storage.
+    -- Tambien impide un DELETE silencioso si el definidor no puede ver Auth.
+    IF pg_catalog.row_security_active('auth.users'::pg_catalog.regclass)
+        OR pg_catalog.row_security_active('storage.objects'::pg_catalog.regclass) THEN
+        RAISE EXCEPTION 'Visibilidad del propietario no verificada' USING ERRCODE = '42501';
+    END IF;
+
+    PERFORM 1 FROM auth.users WHERE id = identidad FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Identidad no disponible' USING ERRCODE = '28000';
+    END IF;
+    IF EXISTS (SELECT 1 FROM storage.objects WHERE owner_id = identidad::text) THEN
+        RAISE EXCEPTION 'La cuenta conserva objetos Storage' USING ERRCODE = '23503';
+    END IF;
+
+    DELETE FROM auth.users WHERE id = identidad;
+    GET DIAGNOSTICS eliminadas = ROW_COUNT;
+    IF eliminadas <> 1 THEN
+        RAISE EXCEPTION 'No se completo la eliminacion' USING ERRCODE = 'P0001';
+    END IF;
+END;
+$function$;
+
+ALTER FUNCTION private.delete_my_account() OWNER TO supabase_auth_admin;
+REVOKE ALL ON FUNCTION private.delete_my_account()
+    FROM PUBLIC, anon, authenticated, gestor_pedidos_jdbc, service_role;
+GRANT EXECUTE ON FUNCTION private.delete_my_account() TO authenticated;
+COMMIT;
