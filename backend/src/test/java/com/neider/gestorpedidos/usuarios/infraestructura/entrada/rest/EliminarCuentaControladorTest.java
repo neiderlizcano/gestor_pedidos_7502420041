@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.UUID;
 
 import com.neider.gestorpedidos.configuracion.seguridad.SeguridadConfiguracion;
+import com.neider.gestorpedidos.usuarios.aplicacion.puerto.salida.VerificarCuentaActiva;
 import com.neider.gestorpedidos.configuracion.seguridad.UsuarioAutenticado;
 import com.neider.gestorpedidos.configuracion.usuarios.EliminarCuentaConfiguracion;
 import com.neider.gestorpedidos.usuarios.aplicacion.puerto.salida.EliminarCuenta;
@@ -55,6 +56,9 @@ import org.springframework.transaction.TransactionSystemException;
 @Import({SeguridadConfiguracion.class, UsuarioAutenticado.class, EliminarCuentaConfiguracion.class,
         EliminarCuentaErroresHandler.class, EliminarCuentaControladorTest.Seguridad.class})
 class EliminarCuentaControladorTest {
+
+    @MockitoBean
+    private VerificarCuentaActiva verificacionCuenta;
     private static final UUID A = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID B = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final String RUTA = "/api/v1/usuarios/me";

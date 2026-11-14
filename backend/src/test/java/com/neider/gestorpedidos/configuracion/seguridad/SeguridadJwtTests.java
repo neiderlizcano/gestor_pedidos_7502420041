@@ -1,6 +1,12 @@
 package com.neider.gestorpedidos.configuracion.seguridad;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.io.IOException;
@@ -37,7 +43,15 @@ import com.nimbusds.jwt.PlainJWT;
 import com.nimbusds.jwt.SignedJWT;
 import com.sun.net.httpserver.HttpServer;
 
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
+import org.apache.hc.core5.http.protocol.HttpContext;
+
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -49,12 +63,13 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * HTTP real y firmas reales, con claves efimeras y JWKS exclusivamente local.
+ * HTTP y firmas reales, JWKS local, filtro y adaptador reales; transporte de Auth simulado.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(SeguridadJwtTests.EndpointsPrueba.class)
@@ -74,11 +89,29 @@ class SeguridadJwtTests {
     @LocalServerPort
     private int puerto;
 
+    @MockitoBean(name = "clienteCuentaActiva")
+    private CloseableHttpClient clienteAuth;
+
+    @BeforeEach
+    void cuentaExistente() throws Exception {
+        responderAuth(200, "{\"id\":\"" + SUBJECT + "\"}");
+    }
+
+    private void responderAuth(int estado, String cuerpo) throws Exception {
+        when(clienteAuth.executeOpen(isNull(), any(ClassicHttpRequest.class), any(HttpContext.class)))
+                .thenAnswer(invocacion -> {
+                    var respuesta = new BasicClassicHttpResponse(estado);
+                    respuesta.setEntity(new StringEntity(cuerpo, ContentType.APPLICATION_JSON));
+                    return respuesta;
+                });
+    }
+
     @DynamicPropertySource
     static void configurar(DynamicPropertyRegistry propiedades) {
         propiedades.add("spring.security.oauth2.resourceserver.jwt.issuer-uri", () -> EMISOR);
         propiedades.add("spring.security.oauth2.resourceserver.jwt.jwk-set-uri",
                 () -> "http://127.0.0.1:" + JWKS.getAddress().getPort() + "/jwks");
+        propiedades.add("seguridad.cuenta.publishable-key", () -> "sb_publishable_sintetica");
     }
 
     @AfterAll
@@ -93,6 +126,58 @@ class SeguridadJwtTests {
         assertThat(respuesta.statusCode()).isEqualTo(200);
         assertThat(respuesta.body()).isEqualTo(SUBJECT);
         assertThat(CONSULTAS_JWKS.get()).isPositive();
+        verify(clienteAuth).executeOpen(isNull(), any(ClassicHttpRequest.class), any(HttpContext.class));
+    }
+
+    @Test
+    void eliminacionSeRechazaEnLaSiguienteSolicitudSinCachePositiva() throws Exception {
+        String jwt = token(claims());
+        assertThat(enviar("GET", "/prueba/privado", jwt).statusCode()).isEqualTo(200);
+        responderAuth(403, "{\"code\":\"user_not_found\"}");
+        comprobar401(enviar("GET", "/prueba/privado", jwt));
+        verify(clienteAuth, times(2)).executeOpen(isNull(), any(ClassicHttpRequest.class), any(HttpContext.class));
+        // No queda identidad autenticada reutilizable entre solicitudes.
+        comprobar401(enviar("GET", "/prueba/privado", null));
+    }
+
+    @Test
+    void falloDeAuthNoEjecutaEndpointYDevuelve503Controlado() throws Exception {
+        responderAuth(503, "detalle remoto que no debe exponerse");
+        var respuesta = enviar("GET", "/prueba/privado", token(claims()));
+        assertThat(respuesta.statusCode()).isEqualTo(503);
+        assertThat(respuesta.headers().firstValue("Content-Type").orElse(""))
+                .startsWith("application/problem+json");
+        assertThat(respuesta.body()).contains("Verificacion de identidad temporalmente no disponible.")
+                .doesNotContain(SUBJECT, "Bearer", "Exception");
+    }
+
+    @Test
+    void healthConJwtValidoNoConsultaCuentaNiDependeDeAuth() throws Exception {
+        responderAuth(503, "detalle remoto que no debe exponerse");
+        assertThat(enviar("GET", "/actuator/health", token(claims())).statusCode()).isEqualTo(200);
+        verifyNoInteractions(clienteAuth);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/v1/usuarios/me", "/api/v1/pedidos", "/api/v1/reportes/pedidos"})
+    void cuentaRechazadaNoAlcanzaRutasProtegidas(String ruta) throws Exception {
+        responderAuth(401, "{}");
+        comprobar401(enviar("GET", ruta, token(claims())));
+    }
+
+    @Test
+    void idDevueltoDistintoDelSubRechazaCon401() throws Exception {
+        responderAuth(200, "{\"id\":\"22222222-2222-2222-2222-222222222222\"}");
+        comprobar401(enviar("GET", "/prueba/privado", token(claims())));
+    }
+
+    @Test
+    void falloDeConexionDevuelve503SinDetallesInternos() throws Exception {
+        when(clienteAuth.executeOpen(isNull(), any(ClassicHttpRequest.class), any(HttpContext.class)))
+                .thenThrow(new IOException("detalle interno que no debe exponerse"));
+        var respuesta = enviar("GET", "/prueba/privado", token(claims()));
+        assertThat(respuesta.statusCode()).isEqualTo(503);
+        assertThat(respuesta.body()).doesNotContain("detalle interno", "Exception", SUBJECT);
     }
 
     @Test
@@ -110,6 +195,7 @@ class SeguridadJwtTests {
 
         assertThat(respuesta.statusCode()).isEqualTo(200);
         assertThat(respuesta.body()).contains("\"status\":\"UP\"");
+        verifyNoInteractions(clienteAuth);
     }
 
     @ParameterizedTest
@@ -199,6 +285,7 @@ class SeguridadJwtTests {
         modificar.accept(claims);
 
         comprobar401(enviar("GET", "/prueba/privado", token(claims)));
+        verifyNoInteractions(clienteAuth);
     }
 
     @Test

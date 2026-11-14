@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 
 import com.neider.gestorpedidos.configuracion.reportes.ReportesConfiguracion;
 import com.neider.gestorpedidos.configuracion.seguridad.SeguridadConfiguracion;
+import com.neider.gestorpedidos.usuarios.aplicacion.puerto.salida.VerificarCuentaActiva;
 import com.neider.gestorpedidos.configuracion.seguridad.UsuarioAutenticado;
 import com.neider.gestorpedidos.reportes.aplicacion.puerto.entrada.FechaBase;
 import com.neider.gestorpedidos.reportes.aplicacion.puerto.entrada.FiltroEstadoFechas;
@@ -75,6 +76,9 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 @Import({SeguridadConfiguracion.class, UsuarioAutenticado.class, ReportesConfiguracion.class,
         ReportesErroresHandler.class, ReportesPedidosControladorTest.InfraestructuraSeguridad.class})
 class ReportesPedidosControladorTest {
+
+    @MockitoBean
+    private VerificarCuentaActiva cuentas;
 
     private static final String RUTA = "/api/v1/reportes/pedidos/";
     private static final String EMISOR = "https://supabase.invalid/auth/v1";
