@@ -35,6 +35,7 @@ import com.neider.gestorpedidos.configuracion.seguridad.SeguridadConfiguracion;
 import com.neider.gestorpedidos.configuracion.seguridad.UsuarioAutenticado;
 import com.neider.gestorpedidos.configuracion.usuarios.UsuariosConfiguracion;
 import com.neider.gestorpedidos.usuarios.aplicacion.puerto.salida.RepositorioUsuarios;
+import com.neider.gestorpedidos.usuarios.aplicacion.puerto.salida.VerificarCuentaActiva;
 import com.neider.gestorpedidos.usuarios.dominio.Usuario;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -96,6 +97,9 @@ class UsuariosControladorTest {
     @MockitoBean
     private RepositorioUsuarios repositorio;
 
+    @MockitoBean
+    private VerificarCuentaActiva cuentas;
+
     // Habilita infraestructura, no una cadena permisiva: se importa la cadena real de produccion.
     @TestConfiguration(proxyBeanMethods = false)
     @EnableWebSecurity
@@ -129,6 +133,8 @@ class UsuariosControladorTest {
         var captor = ArgumentCaptor.forClass(Usuario.class);
         verify(repositorio).crear(captor.capture());
         assertThat(captor.getValue()).isEqualTo(perfil());
+        // La comprobacion de Auth no exige perfil previo ni hace una consulta buscarPorId.
+        verify(cuentas).verificar(ID);
         verifyNoMoreInteractions(repositorio);
     }
 

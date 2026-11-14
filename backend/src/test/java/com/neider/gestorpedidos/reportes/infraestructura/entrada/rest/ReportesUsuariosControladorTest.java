@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 import com.neider.gestorpedidos.configuracion.reportes.ReportesConfiguracion;
 import com.neider.gestorpedidos.configuracion.reportes.ReportesUsuariosConfiguracion;
 import com.neider.gestorpedidos.configuracion.seguridad.SeguridadConfiguracion;
+import com.neider.gestorpedidos.usuarios.aplicacion.puerto.salida.VerificarCuentaActiva;
 import com.neider.gestorpedidos.configuracion.seguridad.UsuarioAutenticado;
 import com.neider.gestorpedidos.reportes.aplicacion.puerto.entrada.CampoPerfil;
 import com.neider.gestorpedidos.reportes.aplicacion.puerto.entrada.CoincidenciaPerfil;
@@ -82,6 +83,9 @@ import tools.jackson.databind.json.JsonMapper;
         ReportesUsuariosConfiguracion.class, ReportesUsuariosErroresHandler.class,
         ReportesUsuariosControladorTest.InfraestructuraSeguridad.class})
 class ReportesUsuariosControladorTest {
+
+    @MockitoBean
+    private VerificarCuentaActiva cuentas;
 
     private static final String RUTA = "/api/v1/reportes/usuarios/";
     private static final String EMISOR = "https://supabase.invalid/auth/v1";

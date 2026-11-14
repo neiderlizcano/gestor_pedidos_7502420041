@@ -2,6 +2,8 @@ package com.neider.gestorpedidos.configuracion.seguridad;
 
 import java.time.Duration;
 
+import com.neider.gestorpedidos.usuarios.aplicacion.puerto.salida.VerificarCuentaActiva;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,8 +20,10 @@ import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
 import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 /**
  * API stateless: solo health es publico; la identidad procede de un JWT validado.
@@ -29,7 +33,8 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SeguridadConfiguracion {
 
     @Bean
-    SecurityFilterChain seguridadApi(HttpSecurity http) throws Exception {
+    SecurityFilterChain seguridadApi(HttpSecurity http, VerificarCuentaActiva cuentas) throws Exception {
+        var publico = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.GET, "/actuator/health");
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -38,12 +43,13 @@ public class SeguridadConfiguracion {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(reglas -> reglas
-                        .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                        .requestMatchers(publico).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(errores -> errores
                         .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
                         .accessDeniedHandler(new BearerTokenAccessDeniedHandler()))
                 .oauth2ResourceServer(resourceServer -> resourceServer.jwt(Customizer.withDefaults()))
+                .addFilterAfter(new CuentaActivaFiltro(cuentas, publico), BearerTokenAuthenticationFilter.class)
                 .build();
     }
 

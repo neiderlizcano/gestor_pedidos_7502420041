@@ -16,6 +16,10 @@ spring:
           issuer-uri: ${SUPABASE_AUTH_ISSUER}
           jwk-set-uri: ${SUPABASE_JWKS_URI}
 
+seguridad:
+  cuenta:
+    publishable-key: ${SUPABASE_PUBLISHABLE_KEY:${cuenta.publishable-key:}}
+
 management:
   endpoints:
     web:
@@ -32,6 +36,9 @@ logging:
     org.springframework.transaction: "OFF"
     org.postgresql: "OFF"
     com.zaxxer.hikari: INFO
+    # El transporte de Auth lleva credenciales en cabeceras: no habilitar wire/headers.
+    org.apache.hc.client5.http: "OFF"
+    org.apache.hc.core5.http: "OFF"
 
 ---
 spring:

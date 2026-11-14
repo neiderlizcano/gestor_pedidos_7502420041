@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 
 import com.neider.gestorpedidos.configuracion.pedidos.PedidosConfiguracion;
 import com.neider.gestorpedidos.configuracion.seguridad.SeguridadConfiguracion;
+import com.neider.gestorpedidos.usuarios.aplicacion.puerto.salida.VerificarCuentaActiva;
 import com.neider.gestorpedidos.configuracion.seguridad.UsuarioAutenticado;
 import com.neider.gestorpedidos.pedidos.aplicacion.puerto.salida.RepositorioPedidos;
 import com.neider.gestorpedidos.pedidos.dominio.Pedido;
@@ -79,6 +80,9 @@ import tools.jackson.databind.node.ObjectNode;
 @Import({SeguridadConfiguracion.class, UsuarioAutenticado.class, PedidosConfiguracion.class,
         PedidosErroresHandler.class, PedidosControladorTest.InfraestructuraSeguridad.class})
 class PedidosControladorTest {
+
+    @MockitoBean
+    private VerificarCuentaActiva cuentas;
 
     private static final String RUTA = "/api/v1/pedidos";
     private static final String EMISOR = "https://supabase.invalid/auth/v1";
