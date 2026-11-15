@@ -9,7 +9,7 @@ import org.junit.Rule
 import org.junit.Test
 class PedidoCalendarTest {
  @get:Rule val compose=createAndroidComposeRule<ComponentActivity>()
- private fun install(runtime:PedidosTestRuntime){compose.activityRule.scenario.onActivity{it.setContent{AuthRoute(runtime)}};compose.waitForIdle()}
+ private fun install(runtime:PedidosTestRuntime){compose.activityRule.scenario.onActivity{it.setContent{AuthRoute(runtime)}};compose.waitForIdle();compose.abrirPedidos()}
  private fun show(tag:String){compose.onNodeWithTag("pedidosScreen").performScrollToNode(hasTestTag(tag))}
  private fun click(tag:String){show(tag);compose.onNodeWithTag(tag).performClick()}
  private fun enter(field:PedidoField,value:String){

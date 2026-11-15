@@ -13,7 +13,9 @@ data class PerfilUiState(
     val username: String = "", val nombre: String = "", val dirty: Boolean = false,
     val usernameRequired: Boolean = false, val nombreRequired: Boolean = false,
     val busy: Boolean = false, val error: AppError? = null, val writeFailure: Boolean = false,
-    val uncertain: EscrituraPerfil? = null, val confirmDelete: Boolean = false, val deleted: Boolean = false
+    val uncertain: EscrituraPerfil? = null, val confirmDelete: Boolean = false, val deleted: Boolean = false,
+    /** Verdadero tras guardar correctamente; se limpia al iniciar otra operación o al editar de nuevo. */
+    val guardado: Boolean = false
 )
 
 class PerfilViewModel(
@@ -27,7 +29,7 @@ class PerfilViewModel(
     init { consultar() }
     private fun execute(action: suspend () -> Unit) {
         if (state.value.busy || state.value.deleted) return
-        state.update { it.copy(busy = true, error = null, writeFailure = false, confirmDelete = false) }
+        state.update { it.copy(busy = true, error = null, writeFailure = false, confirmDelete = false, guardado = false) }
         scope.launch { try { action() } finally { state.update { it.copy(busy = false) } } }
     }
     private fun failure(error: AppError, write: EscrituraPerfil? = null) {
@@ -62,7 +64,7 @@ class PerfilViewModel(
         if (state.value.busy || state.value.uncertain != null) return
         val perfil = state.value.perfil ?: return
         state.update { it.copy(editing = true, username = if (it.dirty) it.username else perfil.username,
-            nombre = if (it.dirty) it.nombre else perfil.nombre, error = null) }
+            nombre = if (it.dirty) it.nombre else perfil.nombre, error = null, guardado = false) }
     }
     fun cambiarUsername(value: String) { if (!state.value.busy) state.update { it.copy(username = value, dirty = true, usernameRequired = false) } }
     fun cambiarNombre(value: String) { if (!state.value.busy) state.update { it.copy(nombre = value, dirty = true, nombreRequired = false) } }
@@ -80,7 +82,7 @@ class PerfilViewModel(
             when (result) {
                 is AppResult.Fallo -> failure(result.error, operation)
                 is AppResult.Exito -> state.update { it.copy(perfil = result.valor, missing = false, editing = false,
-                    username = result.valor.username, nombre = result.valor.nombre, dirty = false) }
+                    username = result.valor.username, nombre = result.valor.nombre, dirty = false, guardado = true) }
             }
         }
     }

@@ -14,7 +14,7 @@ class PedidosScrollTest {
  @get:Rule val compose=createAndroidComposeRule<ComponentActivity>()
  private fun install(runtime:PedidosTestRuntime){
   compose.activityRule.scenario.onActivity{a->a.setContent{GestorPedidosTheme{Box(Modifier.width(320.dp).height(600.dp)){AuthRoute(runtime)}}}}
-  compose.waitForIdle()
+  compose.waitForIdle();compose.abrirPedidos()
  }
  private fun show(tag:String){compose.onNodeWithTag("pedidosScreen").performScrollToNode(hasTestTag(tag))}
  private fun click(tag:String){show(tag);compose.onNodeWithTag(tag).performClick()}

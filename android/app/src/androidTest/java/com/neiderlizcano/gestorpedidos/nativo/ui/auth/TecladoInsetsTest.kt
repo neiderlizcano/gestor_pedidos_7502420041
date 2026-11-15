@@ -32,7 +32,7 @@ class TecladoInsetsTest {
     @Test fun conElTecladoAbiertoElEncabezadoNoCreceYElCampoSigueVisible() {
         val runtime = PedidosTestRuntime()
         compose.activityRule.scenario.onActivity { it.setContent { AuthRoute(runtime) } }
-        compose.waitForIdle()
+        compose.waitForIdle(); compose.abrirPedidos()
         compose.onNodeWithTag("pedidoNuevo").performClick()
         compose.onNodeWithTag("pedidosScreen").performScrollToNode(hasTestTag("pedidoField_CLIENTE"))
         compose.onNodeWithTag("pedidoField_CLIENTE").performClick()
@@ -57,7 +57,7 @@ class TecladoInsetsTest {
     @Test fun laEtiquetaYElErrorDelCampoEnfocadoSeVenSobreElTeclado() {
         val runtime = PedidosTestRuntime()
         compose.activityRule.scenario.onActivity { it.setContent { AuthRoute(runtime) } }
-        compose.waitForIdle()
+        compose.waitForIdle(); compose.abrirPedidos()
         compose.onNodeWithTag("pedidoNuevo").performClick()
         compose.onNodeWithTag("pedidosScreen").performScrollToNode(hasTestTag("pedidoGuardar"))
         compose.onNodeWithTag("pedidoGuardar").performClick() // formulario vacío: todos los campos muestran su error

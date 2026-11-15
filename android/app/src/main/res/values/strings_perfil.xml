@@ -12,6 +12,7 @@
     <string name="perfil_edit">Editar mi perfil</string>
     <string name="perfil_save">Guardar perfil</string>
     <string name="perfil_cancel">Cancelar</string>
+    <string name="perfil_saved">Perfil guardado correctamente.</string>
     <string name="perfil_required">Campo obligatorio.</string>
     <string name="perfil_delete">Eliminar mi cuenta</string>
     <string name="perfil_confirm_delete">Eliminar cuenta y pedidos</string>

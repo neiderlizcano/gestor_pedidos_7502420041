@@ -40,11 +40,15 @@ internal class PedidosTestRuntime : AuthRuntime, PedidosRuntime {
     override suspend fun inicializar() = auth.inicializar()
     override var pedidosRepository: PedidosRepository = UiPedidos()
 }
+/** Tras iniciar sesión se muestra el menú central: abre «Pedidos» si todavía está visible (tras recrear la Activity ya puede estar abierto). */
+internal fun androidx.compose.ui.test.junit4.ComposeTestRule.abrirPedidos() {
+    if (onAllNodesWithTag("navPedidos").fetchSemanticsNodes().isNotEmpty()) { onNodeWithTag("navPedidos").performClick(); waitForIdle() }
+}
 class PedidosScreenTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private fun install(runtime: PedidosTestRuntime) {
         compose.activityRule.scenario.onActivity { activity -> activity.setContent { GestorPedidosTheme { AuthRoute(runtime) } } }
-        compose.waitForIdle()
+        compose.waitForIdle(); compose.abrirPedidos()
     }
     private fun show(tag: String) {
         compose.onNodeWithTag("pedidosScreen").performScrollToNode(hasTestTag(tag))
@@ -83,7 +87,7 @@ class PedidosScreenTest {
             runtime.pedidosRepository = UiPedidos().apply { items = emptyList() }
             runtime.auth.session.value = EstadoSesion.Autenticada("B")
         }
-        compose.waitForIdle(); click("pedidoNuevo"); show("pedidoField_CLIENTE")
+        compose.waitForIdle(); compose.abrirPedidos(); click("pedidoNuevo"); show("pedidoField_CLIENTE")
         compose.onNodeWithTag("pedidoField_CLIENTE").assertTextContains("")
         compose.onNodeWithTag("pedidoField_CLIENTE").assert(SemanticsMatcher("Sin borrador A") { node ->
             node.config[androidx.compose.ui.semantics.SemanticsProperties.EditableText].text.isEmpty()
@@ -95,7 +99,9 @@ class PedidosScreenTest {
         install(runtime); click("pedidoNuevo")
         for ((field,value) in PedidoDraft.from(examplePedido()).values) enter(field,value)
         click("pedidoGuardar"); show("pedidosError"); compose.onNodeWithTag("pedidosError").assertExists()
-        compose.onNodeWithTag("authLogout").assertExists()
+        show("pedidoField_CLIENTE"); compose.onNodeWithTag("pedidoField_CLIENTE").assertTextContains("Cliente de prueba")
+        // La sesión sigue activa: el menú ofrece Cerrar sesión y el borrador se conserva al volver.
+        compose.onNodeWithTag("navInicio").performClick(); compose.onNodeWithTag("authLogout").assertExists(); compose.onNodeWithTag("navPedidos").performClick()
         show("pedidoField_CLIENTE"); compose.onNodeWithTag("pedidoField_CLIENTE").assertTextContains("Cliente de prueba")
         compose.runOnIdle { assertEquals(1, (runtime.pedidosRepository as UiPedidos).writes) }
     }

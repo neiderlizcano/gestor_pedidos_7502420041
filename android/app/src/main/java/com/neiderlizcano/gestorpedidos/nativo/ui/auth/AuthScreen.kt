@@ -91,17 +91,10 @@ internal fun AuthScreen(
             val foco = LocalFocusManager.current
             val teclado = LocalSoftwareKeyboardController.current
             LaunchedEffect(Unit) { foco.clearFocus(); teclado?.hide() }
-            Column(Modifier.fillMaxSize()) {
-                // Solo barras del sistema y recorte: safeDrawingPadding() incluía el teclado (IME) y el encabezado crecía
-                // con su altura, dejando la pantalla en blanco al escribir o al abrir sesión con el teclado visible.
-                Row(Modifier.fillMaxWidth().statusBarsPadding().displayCutoutPadding().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(stringResource(R.string.auth_active), style = MaterialTheme.typography.labelLarge)
-                    TextButton(onClick = onLogout, enabled = !state.busy, modifier = Modifier.testTag("authLogout")) { Text(stringResource(R.string.auth_logout)) }
-                }
-                Box(Modifier.weight(1f)) {
-                    val user = (state.sesion as com.neiderlizcano.gestorpedidos.nativo.domain.auth.EstadoSesion.Autenticada).usuarioId
-                    SessionContent(user, state.sessionVersion, retained) { SessionDashboard(pedidosRepository, usuariosRepository, onAccountDeleted) }
-                }
+            // Solo barras del sistema y recorte (nunca el teclado): el menú y las pantallas de la sesión no deben crecer con el IME.
+            val user = (state.sesion as com.neiderlizcano.gestorpedidos.nativo.domain.auth.EstadoSesion.Autenticada).usuarioId
+            SessionContent(user, state.sessionVersion, retained) {
+                SessionDashboard(pedidosRepository, usuariosRepository, onLogout, onAccountDeleted, logoutEnabled = !state.busy)
             }
         } else {
             Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).imePadding().padding(28.dp),

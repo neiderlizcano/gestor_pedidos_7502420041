@@ -1,12 +1,29 @@
 package com.neiderlizcano.gestorpedidos.nativo.ui.auth
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -18,23 +35,103 @@ import com.neiderlizcano.gestorpedidos.nativo.ui.perfil.PerfilRoute
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+internal enum class Destino { MENU, PEDIDOS, PERFIL }
+
 internal class SessionNavigationViewModel : ViewModel() {
-    private val selected = MutableStateFlow(false)
-    val perfil = selected.asStateFlow()
-    fun mostrarPerfil(value: Boolean) { selected.value = value }
+    private val destino = MutableStateFlow(Destino.MENU)
+    private val nuevo = MutableStateFlow(false)
+    val actual = destino.asStateFlow()
+    /** Verdadero hasta que la pantalla de pedidos atiende la petición de «Nuevo pedido» (se abre un solo formulario). */
+    val nuevoPendiente = nuevo.asStateFlow()
+    fun ir(value: Destino) { destino.value = value }
+    fun abrirNuevoPedido() { nuevo.value = true; destino.value = Destino.PEDIDOS }
+    fun nuevoAtendido() { nuevo.value = false }
 }
+
+private val AzulOscuro = Color(0xFF1E5B92)
+private val AzulPrincipal = Color(0xFF2563EB)
+
+/**
+ * Menú central tras iniciar sesión y contenedor de las pantallas de la sesión. Reportes y Sensores se muestran
+ * como «Próximamente» y no navegan a ningún lado.
+ */
 @Composable
-internal fun SessionDashboard(pedidos: PedidosRepository, usuarios: UsuariosRepository, onAccountDeleted: () -> Unit) {
+internal fun SessionDashboard(
+    pedidos: PedidosRepository, usuarios: UsuariosRepository, onLogout: () -> Unit, onAccountDeleted: () -> Unit,
+    logoutEnabled: Boolean = true
+) {
     val navigation: SessionNavigationViewModel = viewModel()
-    val perfil by navigation.perfil.collectAsStateWithLifecycle()
-    BackHandler(enabled = perfil) { navigation.mostrarPerfil(false) }
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            TextButton(onClick = { navigation.mostrarPerfil(false) }, modifier = Modifier.testTag("navPedidos")) { Text(stringResource(R.string.perfil_nav_pedidos)) }
-            TextButton(onClick = { navigation.mostrarPerfil(true) }, modifier = Modifier.testTag("navPerfil")) { Text(stringResource(R.string.perfil_title)) }
+    val destino by navigation.actual.collectAsStateWithLifecycle()
+    val nuevoPendiente by navigation.nuevoPendiente.collectAsStateWithLifecycle()
+    BackHandler(enabled = destino != Destino.MENU) { navigation.ir(Destino.MENU) }
+    when (destino) {
+        Destino.MENU -> MenuPrincipal(
+            onPedidos = { navigation.ir(Destino.PEDIDOS) }, onNuevo = navigation::abrirNuevoPedido,
+            onPerfil = { navigation.ir(Destino.PERFIL) }, onLogout = onLogout, logoutEnabled = logoutEnabled)
+        else -> Column(Modifier.fillMaxSize()) {
+            BarraSuperior(titulo = stringResource(if (destino == Destino.PERFIL) R.string.menu_perfil else R.string.menu_pedidos),
+                onVolver = { navigation.ir(Destino.MENU) })
+            Box(Modifier.weight(1f)) {
+                if (destino == Destino.PERFIL) PerfilRoute(usuarios, onAccountDeleted) else PedidosRoute(pedidos, nuevoPendiente, navigation::nuevoAtendido)
+            }
         }
-        Box(Modifier.weight(1f)) {
-            if (perfil) PerfilRoute(usuarios, onAccountDeleted) else PedidosRoute(pedidos)
+    }
+}
+
+/** Barra azul oscuro de las pantallas internas: un único botón para volver al menú. */
+@Composable
+private fun BarraSuperior(titulo: String, onVolver: () -> Unit) {
+    Row(Modifier.fillMaxWidth().background(AzulOscuro).statusBarsPadding().displayCutoutPadding()
+        .padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onVolver, modifier = Modifier.testTag("navInicio")) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.menu_back_home), tint = Color.White)
+        }
+        Text(titulo, style = MaterialTheme.typography.titleLarge, color = Color.White)
+    }
+}
+
+@Composable
+private fun MenuPrincipal(onPedidos: () -> Unit, onNuevo: () -> Unit, onPerfil: () -> Unit, onLogout: () -> Unit, logoutEnabled: Boolean) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("menuPrincipal")) {
+        // Cabecera con degradado azul, como en la maqueta.
+        Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(AzulOscuro, AzulPrincipal)),
+            RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+            .statusBarsPadding().displayCutoutPadding().padding(horizontal = 24.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium, color = Color.White)
+            Text(stringResource(R.string.menu_subtitle), style = MaterialTheme.typography.labelLarge, color = Color(0xFFDCEAFE))
+        }
+        Column(Modifier.navigationBarsPadding().padding(horizontal = 24.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max)) {
+                TarjetaMenu(R.string.menu_pedidos, R.string.menu_pedidos_desc, Icons.AutoMirrored.Filled.List, "navPedidos", Modifier.weight(1f).fillMaxHeight(), onClick = onPedidos)
+                TarjetaMenu(R.string.menu_nuevo, R.string.menu_nuevo_desc, Icons.Filled.Add, "navNuevo", Modifier.weight(1f).fillMaxHeight(), onClick = onNuevo)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max)) {
+                TarjetaMenu(R.string.menu_reportes, R.string.menu_pending, Icons.Filled.Info, "navReportes", Modifier.weight(1f).fillMaxHeight(), enabled = false)
+                TarjetaMenu(R.string.menu_sensores, R.string.menu_pending, Icons.Filled.Settings, "navSensores", Modifier.weight(1f).fillMaxHeight(), enabled = false)
+            }
+            TarjetaMenu(R.string.menu_perfil, R.string.menu_perfil_desc, Icons.Filled.Person, "navPerfil", Modifier.fillMaxWidth(), onClick = onPerfil)
+            OutlinedButton(onClick = onLogout, enabled = logoutEnabled, shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag("authLogout")) {
+                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.auth_logout))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TarjetaMenu(title: Int, subtitle: Int, icon: ImageVector, tag: String, modifier: Modifier, enabled: Boolean = true, onClick: () -> Unit = {}) {
+    ElevatedCard(onClick = onClick, enabled = enabled, shape = RoundedCornerShape(18.dp), modifier = modifier.heightIn(min = 112.dp).testTag(tag)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(Modifier.size(40.dp).background(if (enabled) Color(0xFFDBEAFE) else MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = if (enabled) AzulPrincipal else MaterialTheme.colorScheme.outline, modifier = Modifier.size(22.dp))
+            }
+            Text(stringResource(title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(subtitle), style = MaterialTheme.typography.bodySmall,
+                color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline)
         }
     }
 }

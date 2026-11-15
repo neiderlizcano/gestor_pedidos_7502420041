@@ -14,6 +14,9 @@
     <string name="pedidos_generated">Lo asigna el servidor</string>
     <string name="pedidos_delete_question">¿Eliminar este pedido? Esta acción no se puede deshacer.</string>
     <string name="pedidos_cancel">Cancelar</string>
+    <string name="pedidos_saved_created">Pedido creado correctamente.</string>
+    <string name="pedidos_saved_updated">Pedido actualizado correctamente.</string>
+    <string name="pedidos_deleted_ok">Pedido eliminado correctamente.</string>
     <string name="pedidos_confirm">Eliminar</string>
     <string name="pedidos_required">Campo obligatorio.</string>
     <string name="pedidos_date_help">Usa el formato AAAA-MM-DD.</string>

@@ -75,7 +75,7 @@ class PerfilScreenTest {
     }
     @Test fun draftAndDestinationSurviveRotationButDisappearAfterAccountChangeOrLogout() {
         val runtime = PerfilRuntime(); install(runtime); click("navPerfil"); click("perfilEditar"); fill()
-        click("navPedidos"); click("navPerfil"); compose.onNodeWithTag("perfilNombre").assertTextContains("Nombre nuevo")
+        click("navInicio"); click("navPedidos"); click("navInicio"); click("navPerfil"); compose.onNodeWithTag("perfilNombre").assertTextContains("Nombre nuevo")
         compose.activityRule.scenario.recreate(); install(runtime)
         compose.onNodeWithTag("perfilNombre").assertTextContains("Nombre nuevo")
         compose.runOnIdle {
@@ -84,7 +84,7 @@ class PerfilScreenTest {
         }
         click("navPerfil"); compose.onNodeWithTag("perfilNombreValue").assertTextEquals("Persona B")
         click("perfilEditar"); compose.onNodeWithTag("perfilNombre").assertTextContains("Persona B")
-        click("authLogout")
+        click("navInicio"); click("authLogout")
         compose.waitUntil(5000) { compose.onAllNodesWithTag("authSubmit").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("perfilScreen").assertDoesNotExist()
         compose.runOnIdle { assertEquals(1, runtime.auth.initializations) }
@@ -113,7 +113,7 @@ class PerfilScreenTest {
         compose.runOnIdle { repo.perfil = null }
         click("perfilConsultar")
         compose.onNodeWithTag("perfilCrear").assertIsNotEnabled()
-        compose.onNodeWithTag("perfilEliminar").assertIsNotEnabled(); compose.onNodeWithTag("authLogout").assertExists()
+        compose.onNodeWithTag("perfilEliminar").assertIsNotEnabled(); click("navInicio"); compose.onNodeWithTag("authLogout").assertExists()
         compose.runOnIdle { assertEquals(1, repo.deletes); assertEquals(0, runtime.logouts) }
     }
     @Test fun expiredSessionWriteShowsErrorAndPreservesInputsWithoutLogout() {
@@ -121,7 +121,7 @@ class PerfilScreenTest {
         install(runtime); click("navPerfil"); click("perfilEditar"); fill()
         compose.runOnIdle { repo.writeError = AppError.SesionNoValida }
         click("perfilGuardar"); compose.onNodeWithTag("perfilError").assertExists()
-        compose.onNodeWithTag("perfilNombre").assertTextContains("Nombre nuevo"); compose.onNodeWithTag("authLogout").assertExists()
+        compose.onNodeWithTag("perfilNombre").assertTextContains("Nombre nuevo"); click("navInicio"); compose.onNodeWithTag("authLogout").assertExists()
         compose.runOnIdle { assertEquals(1, repo.updates); assertEquals(0, runtime.logouts) }
     }
 }

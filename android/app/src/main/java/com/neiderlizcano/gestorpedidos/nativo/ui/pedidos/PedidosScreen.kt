@@ -1,6 +1,7 @@
 package com.neiderlizcano.gestorpedidos.nativo.ui.pedidos
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -22,9 +24,10 @@ import com.neiderlizcano.gestorpedidos.nativo.R
 import com.neiderlizcano.gestorpedidos.nativo.core.result.AppError
 import com.neiderlizcano.gestorpedidos.nativo.domain.pedidos.PedidosRepository
 import com.neiderlizcano.gestorpedidos.nativo.ubicacion.UsarMiUbicacion
+import kotlinx.coroutines.flow.first
 
 @Composable
-fun PedidosRoute(repository: PedidosRepository) {
+fun PedidosRoute(repository: PedidosRepository, abrirNuevo: Boolean = false, onNuevoAtendido: () -> Unit = {}) {
     val factory = remember(repository) { object : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass == PedidosViewModel::class.java)
@@ -34,6 +37,14 @@ fun PedidosRoute(repository: PedidosRepository) {
     } }
     val vm: PedidosViewModel = viewModel(factory = factory)
     val state by vm.uiState.collectAsStateWithLifecycle()
+    // «Nuevo pedido» desde el menú: se abre el formulario cuando termina la consulta inicial. Si había un borrador
+    // sin guardar, se retoma en lugar de descartarlo.
+    LaunchedEffect(abrirNuevo) {
+        if (!abrirNuevo) return@LaunchedEffect
+        onNuevoAtendido()
+        val actual = vm.uiState.first { !it.busy }
+        if (actual.page == PedidosPage.EDITOR && actual.dirty) vm.continuar() else vm.nuevo()
+    }
     PedidosScreen(state, vm)
 }
 
@@ -76,6 +87,15 @@ internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {
                 Text(stringResource(R.string.pedidos_check))
             }
         }
+        state.exito?.let { exito -> item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer), modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(when (exito) {
+                    ExitoPedido.CREADO -> R.string.pedidos_saved_created
+                    ExitoPedido.ACTUALIZADO -> R.string.pedidos_saved_updated
+                    ExitoPedido.ELIMINADO -> R.string.pedidos_deleted_ok
+                }), color = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.padding(16.dp).testTag("pedidosExito"))
+            }
+        } }
         when (state.page) {
             PedidosPage.LISTA -> {
                 item {
@@ -97,9 +117,15 @@ internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {
                 items(state.items, key = { it.id }) { pedido ->
                     OutlinedCard(Modifier.fillMaxWidth().testTag("pedidoRow_" + pedido.id)
                         .clickable(enabled = !state.busy) { vm.consultar(pedido.id) }) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(stringResource(R.string.pedidos_id, pedido.id.toString()), style = MaterialTheme.typography.titleMedium)
-                            Text(pedido.cliente); Text(pedido.estado); Text(pedido.valor.toPlainString())
+                        Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(stringResource(R.string.pedidos_id, pedido.id.toString()), style = MaterialTheme.typography.titleMedium)
+                                Text(pedido.cliente, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(pedido.valor.toPlainString(), style = MaterialTheme.typography.titleSmall)
+                                EstadoChip(pedido.estado)
+                            }
                         }
                     }
                 }
@@ -107,14 +133,24 @@ internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {
             PedidosPage.DETALLE -> {
                 state.selected?.let { pedido ->
                     item { Text(stringResource(R.string.pedidos_id, pedido.id.toString()), modifier = Modifier.testTag("pedidoId")) }
-                    items(PedidoField.entries) { field ->
-                        Column { Text(stringResource(label(field)), style = MaterialTheme.typography.labelLarge)
-                            Text(PedidoDraft.from(pedido)[field]) }
+                    item {
+                        OutlinedCard(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                PedidoField.entries.forEach { field ->
+                                    Column { Text(stringResource(label(field)), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(PedidoDraft.from(pedido)[field]) }
+                                }
+                            }
+                        }
                     }
                     item {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = vm::editar, enabled = !state.busy, modifier = Modifier.testTag("pedidoEditar")) { Text(stringResource(R.string.pedidos_edit)) }
-                            OutlinedButton(onClick = vm::pedirEliminar, enabled = !state.busy && !state.needsReconciliation, modifier = Modifier.testTag("pedidoEliminar")) { Text(stringResource(R.string.pedidos_delete)) }
+                        // Editar es la acción principal; Eliminar queda diferenciado en rojo y siempre pide confirmación.
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                            Button(onClick = vm::editar, enabled = !state.busy, modifier = Modifier.weight(1f).testTag("pedidoEditar")) { Text(stringResource(R.string.pedidos_edit)) }
+                            OutlinedButton(onClick = vm::pedirEliminar, enabled = !state.busy && !state.needsReconciliation,
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                                modifier = Modifier.weight(1f).testTag("pedidoEliminar")) { Text(stringResource(R.string.pedidos_delete)) }
                         }
                     }
                 }
@@ -123,6 +159,15 @@ internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {
                 item { Text(stringResource(R.string.pedidos_id, state.editingId?.toString() ?: stringResource(R.string.pedidos_generated)), modifier = Modifier.testTag("pedidoId")) }
                 items(PedidoField.entries, key = { it.name }) { field ->
                     val error = state.issues[field]?.let(::issueMessage)
+                    // Cada grupo de campos empieza con un título de sección (dentro del mismo elemento de la lista).
+                    when (field) {
+                        PedidoField.FECHA -> SeccionTitulo(stringResource(R.string.seccion_fechas))
+                        PedidoField.CLIENTE -> SeccionTitulo(stringResource(R.string.seccion_datos))
+                        PedidoField.ESTADO -> SeccionTitulo(stringResource(R.string.seccion_estado))
+                        PedidoField.PAIS -> SeccionTitulo(stringResource(R.string.seccion_ubicacion))
+                        PedidoField.PROPINA -> SeccionTitulo(stringResource(R.string.seccion_otros))
+                        else -> Unit
+                    }
                     if (field in setOf(PedidoField.FECHA, PedidoField.FECHA_ENVIO, PedidoField.FECHA_ENTREGA)) {
                         PedidoDateField(state.draft[field], label(field), "pedidoField_" + field.name, !state.busy, error) { vm.cambiar(field, it) }
                     } else if (field == PedidoField.ESTADO) {
@@ -145,10 +190,17 @@ internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {
                         })
                     }
                 }
-                item { Button(onClick = { foco.clearFocus(); teclado?.hide(); vm.guardar() }, enabled = !state.busy && !state.needsReconciliation, modifier = Modifier.fillMaxWidth().testTag("pedidoGuardar")) { Text(stringResource(R.string.pedidos_save)) } }
+                item {
+                    // Cancelar descarta el borrador; Guardar es la acción principal. El botón se deshabilita mientras hay un envío en curso.
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(onClick = vm::cargar, enabled = !state.busy, modifier = Modifier.weight(1f).testTag("pedidosVolver")) { Text(stringResource(R.string.pedidos_cancel)) }
+                        Button(onClick = { foco.clearFocus(); teclado?.hide(); vm.guardar() }, enabled = !state.busy && !state.needsReconciliation,
+                            modifier = Modifier.weight(1f).testTag("pedidoGuardar")) { Text(stringResource(R.string.pedidos_save)) }
+                    }
+                }
             }
         }
-        if (state.page != PedidosPage.LISTA) item {
+        if (state.page == PedidosPage.DETALLE) item {
             TextButton(onClick = vm::cargar, enabled = !state.busy, modifier = Modifier.fillMaxWidth().testTag("pedidosVolver")) { Text(stringResource(R.string.pedidos_back)) }
         }
     }
@@ -157,7 +209,7 @@ internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {
     if (state.confirmDelete) AlertDialog(onDismissRequest = vm::cancelarEliminar,
         title = { Text(stringResource(R.string.pedidos_delete)) }, text = { Text(stringResource(R.string.pedidos_delete_question)) },
         confirmButton = { TextButton(onClick = vm::eliminar, modifier = Modifier.testTag("pedidoConfirmarEliminar")) { Text(stringResource(R.string.pedidos_confirm)) } },
-        dismissButton = { TextButton(onClick = vm::cancelarEliminar) { Text(stringResource(R.string.pedidos_cancel)) } })
+        dismissButton = { TextButton(onClick = vm::cancelarEliminar, modifier = Modifier.testTag("pedidoCancelarEliminar")) { Text(stringResource(R.string.pedidos_cancel)) } })
 }
 
 private fun label(field: PedidoField): Int = when (field) {

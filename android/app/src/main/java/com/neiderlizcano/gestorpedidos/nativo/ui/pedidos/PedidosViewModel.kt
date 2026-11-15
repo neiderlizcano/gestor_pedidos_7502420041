@@ -77,8 +77,12 @@ data class PedidosUiState(
     val cargado: Boolean = false,
     val validationAttempt: Int = 0,
     val error: AppError? = null, val writeFailure: Boolean = false,
-    val issues: Map<PedidoField, FieldIssue> = emptyMap(), val confirmDelete: Boolean = false
+    val issues: Map<PedidoField, FieldIssue> = emptyMap(), val confirmDelete: Boolean = false,
+    /** Resultado correcto de la última escritura; se limpia al iniciar cualquier otra operación. */
+    val exito: ExitoPedido? = null
 )
+
+enum class ExitoPedido { CREADO, ACTUALIZADO, ELIMINADO }
 
 class PedidosViewModel(private val repository: PedidosRepository, testScope: CoroutineScope? = null) : ViewModel() {
     private val scope = testScope ?: viewModelScope
@@ -87,7 +91,7 @@ class PedidosViewModel(private val repository: PedidosRepository, testScope: Cor
     init { cargar() }
     private fun execute(action: suspend () -> Unit) {
         if (state.value.busy) return
-        state.update { it.copy(busy = true, error = null, writeFailure = false, confirmDelete = false) }
+        state.update { it.copy(busy = true, error = null, writeFailure = false, confirmDelete = false, exito = null) }
         scope.launch { try { action() } finally { state.update { it.copy(busy = false) } } }
     }
     private fun failure(error: AppError, write: Boolean = false) {
@@ -107,9 +111,9 @@ class PedidosViewModel(private val repository: PedidosRepository, testScope: Cor
     fun nuevo() {
         if (state.value.busy) return
         state.update { it.copy(page = PedidosPage.EDITOR, draft = PedidoDraft(), selected = null, editingId = null,
-            dirty = false, issues = emptyMap(), error = null, writeFailure = false) }
+            dirty = false, issues = emptyMap(), error = null, writeFailure = false, exito = null) }
     }
-    fun continuar() { if (!state.value.busy) state.update { it.copy(page = PedidosPage.EDITOR, error = null) } }
+    fun continuar() { if (!state.value.busy) state.update { it.copy(page = PedidosPage.EDITOR, error = null, exito = null) } }
     fun cambiar(field: PedidoField, value: String) {
         if (!state.value.busy) state.update {
             val draft = it.draft.with(field, value)
@@ -126,7 +130,7 @@ class PedidosViewModel(private val repository: PedidosRepository, testScope: Cor
         if (state.value.busy) return
         val current = state.value.selected ?: return
         state.update { it.copy(page = PedidosPage.EDITOR, draft = PedidoDraft.from(current), editingId = current.id,
-            dirty = false, issues = emptyMap(), error = null, writeFailure = false) }
+            dirty = false, issues = emptyMap(), error = null, writeFailure = false, exito = null) }
     }
     fun guardar() {
         if (state.value.busy || state.value.needsReconciliation) return
@@ -140,7 +144,8 @@ class PedidosViewModel(private val repository: PedidosRepository, testScope: Cor
                 is AppResult.Fallo -> failure(result.error, write = true)
                 is AppResult.Exito -> state.update { it.copy(selected = result.valor, page = PedidosPage.DETALLE,
                     items = (it.items.filterNot { item -> item.id == result.valor.id } + result.valor).sortedBy { item -> item.id },
-                    dirty = false, draft = PedidoDraft(), editingId = null) }
+                    dirty = false, draft = PedidoDraft(), editingId = null,
+                    exito = if (id == null) ExitoPedido.CREADO else ExitoPedido.ACTUALIZADO) }
             }
         }
     }
@@ -152,7 +157,8 @@ class PedidosViewModel(private val repository: PedidosRepository, testScope: Cor
         execute {
             when (val result = repository.eliminar(id)) {
                 is AppResult.Fallo -> failure(result.error, write = true)
-                is AppResult.Exito -> state.update { it.copy(page = PedidosPage.LISTA, selected = null, items = it.items.filterNot { item -> item.id == id }) }
+                is AppResult.Exito -> state.update { it.copy(page = PedidosPage.LISTA, selected = null,
+                    items = it.items.filterNot { item -> item.id == id }, exito = ExitoPedido.ELIMINADO) }
             }
         }
     }
