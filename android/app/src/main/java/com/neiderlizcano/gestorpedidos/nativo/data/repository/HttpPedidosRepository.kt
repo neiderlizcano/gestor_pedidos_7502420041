@@ -1,0 +1,16 @@
+package com.neiderlizcano.gestorpedidos.nativo.data.repository
+
+import com.neiderlizcano.gestorpedidos.nativo.core.network.ApiRequestExecutor
+import com.neiderlizcano.gestorpedidos.nativo.core.network.requiredField
+import com.neiderlizcano.gestorpedidos.nativo.data.remote.api.PedidosApi
+import com.neiderlizcano.gestorpedidos.nativo.data.remote.mapper.toPedido
+import com.neiderlizcano.gestorpedidos.nativo.data.remote.mapper.toSolicitud
+import com.neiderlizcano.gestorpedidos.nativo.domain.pedidos.*
+
+class HttpPedidosRepository(private val api: PedidosApi, private val executor: ApiRequestExecutor) : PedidosRepository {
+    override suspend fun crear(datos: DatosPedido) = executor.execute({ api.crear(it, datos.toSolicitud()) }) { it.toPedido() }
+    override suspend fun listar() = executor.execute({ api.listar(it) }) { items -> items.map { requiredField(it).toPedido() } }
+    override suspend fun consultar(id: Long) = executor.execute({ api.consultar(it, id) }) { it.toPedido() }
+    override suspend fun actualizar(id: Long, datos: DatosPedido) = executor.execute({ api.actualizar(it, id, datos.toSolicitud()) }) { it.toPedido() }
+    override suspend fun eliminar(id: Long) = executor.executeEmpty { api.eliminar(it, id) }
+}
