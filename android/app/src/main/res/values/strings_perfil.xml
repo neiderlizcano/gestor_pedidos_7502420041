@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="perfil_title">Mi perfil</string>
+    <string name="perfil_nav_pedidos">Pedidos</string>
+    <string name="perfil_username">Nombre de usuario</string>
+    <string name="perfil_nombre">Nombre</string>
+    <string name="perfil_email_readonly">Correo (solo lectura)</string>
+    <string name="perfil_email_auth">Lo asigna tu cuenta autenticada al crear el perfil.</string>
+    <string name="perfil_refresh">Consultar perfil</string>
+    <string name="perfil_missing">Todavía no tienes perfil. Puedes crearlo para tu cuenta actual.</string>
+    <string name="perfil_create">Crear mi perfil</string>
+    <string name="perfil_edit">Editar mi perfil</string>
+    <string name="perfil_save">Guardar perfil</string>
+    <string name="perfil_cancel">Cancelar</string>
+    <string name="perfil_required">Campo obligatorio.</string>
+    <string name="perfil_delete">Eliminar mi cuenta</string>
+    <string name="perfil_confirm_delete">Eliminar cuenta y pedidos</string>
+    <string name="perfil_delete_warning">Se eliminará tu cuenta de acceso, tu perfil y todos tus pedidos. Esta acción no se puede deshacer. ¿Quieres continuar?</string>
+    <string name="perfil_deleted">Cuenta eliminada. Cerrando la sesión local…</string>
+    <string name="perfil_write_uncertain">No pudimos confirmar la escritura. No se repetirá automáticamente. Consulta el perfil y revisa los datos antes de volver a guardar.</string>
+    <string name="perfil_delete_uncertain">No pudimos confirmar la eliminación de tu cuenta. No vuelvas a enviarla en esta sesión. Consultar el perfil no demuestra que la cuenta de acceso siga existiendo. Sal de la sesión y verifica tu acceso antes de decidir cómo continuar.</string>
+    <string name="perfil_invalid">El servidor rechazó los datos. Revisa el nombre y el nombre de usuario.</string>
+    <string name="perfil_conflict">El perfil está en conflicto con los datos existentes. Consulta el perfil antes de repetir la operación.</string>
+    <string name="perfil_notfound">El servidor no encontró el perfil. Consulta su estado actual.</string>
+    <string name="perfil_session_read">No se pudo autorizar la consulta. Si tu sesión expiró, vuelve a iniciar sesión.</string>
+    <string name="perfil_session_write">La escritura no se repitió. La sesión puede haberse renovado; consulta el perfil antes de intentarlo de nuevo.</string>
+    <string name="perfil_forbidden">No tienes permiso para realizar esta operación.</string>
+    <string name="perfil_unavailable">El servicio de perfiles no está disponible. Inténtalo más tarde.</string>
+    <string name="perfil_connection">No pudimos completar la comunicación. Comprueba tu conexión.</string>
+    <string name="perfil_unknown">No pudimos completar la operación.</string>
+</resources>

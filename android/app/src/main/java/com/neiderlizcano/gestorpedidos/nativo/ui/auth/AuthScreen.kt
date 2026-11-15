@@ -25,6 +25,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.neiderlizcano.gestorpedidos.nativo.R
 import com.neiderlizcano.gestorpedidos.nativo.di.AuthRuntime
 import com.neiderlizcano.gestorpedidos.nativo.domain.auth.ErrorAuth
+import com.neiderlizcano.gestorpedidos.nativo.di.UsuariosRuntime
+import com.neiderlizcano.gestorpedidos.nativo.di.UnavailableUsuariosRepository
+import com.neiderlizcano.gestorpedidos.nativo.domain.usuarios.UsuariosRepository
+import com.neiderlizcano.gestorpedidos.nativo.di.PedidosRuntime
+import com.neiderlizcano.gestorpedidos.nativo.di.UnavailablePedidosRepository
+import com.neiderlizcano.gestorpedidos.nativo.domain.pedidos.PedidosRepository
 
 @Composable
 fun AuthRoute(runtime: AuthRuntime) {
@@ -52,7 +58,8 @@ fun AuthRoute(runtime: AuthRuntime) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     AuthScreen(state, vm::login, vm::recuperar, vm::solicitar, vm::verificar,
         vm::actualizar, vm::volverLogin, vm::reintentar, vm::logout, vm.privateStores,
-        vm::abrirRegistro, vm::registrar, vm::corregirCampo, vm.formMemory)
+        (runtime as? PedidosRuntime)?.pedidosRepository ?: UnavailablePedidosRepository,
+        (runtime as? UsuariosRuntime)?.usuariosRepository ?: UnavailableUsuariosRepository, vm::cuentaEliminada, vm::abrirRegistro, vm::registrar, vm::corregirCampo, vm.formMemory)
 }
 
 @Composable
@@ -67,6 +74,9 @@ internal fun AuthScreen(
     onRetry: () -> Unit,
     onLogout: () -> Unit,
     retained: RetainedSessionStores? = null,
+    pedidosRepository: PedidosRepository = UnavailablePedidosRepository,
+    usuariosRepository: UsuariosRepository = UnavailableUsuariosRepository,
+    onAccountDeleted: () -> Unit = onLogout,
     onOpenSignup: () -> Unit = {},
     onSignup: (String, String, String) -> Unit = { _, _, _ -> },
     onFieldEdited: (AuthValidation) -> Unit = {},
@@ -90,7 +100,7 @@ internal fun AuthScreen(
                 }
                 Box(Modifier.weight(1f)) {
                     val user = (state.sesion as com.neiderlizcano.gestorpedidos.nativo.domain.auth.EstadoSesion.Autenticada).usuarioId
-                    SessionContent(user, state.sessionVersion, retained) { Text(stringResource(R.string.app_name), modifier = Modifier.testTag("authHome")) }
+                    SessionContent(user, state.sessionVersion, retained) { SessionDashboard(pedidosRepository, usuariosRepository, onAccountDeleted) }
                 }
             }
         } else {
