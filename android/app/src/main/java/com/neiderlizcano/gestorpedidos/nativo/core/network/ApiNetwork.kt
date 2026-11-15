@@ -18,6 +18,19 @@ import java.util.concurrent.TimeUnit
 
 object ApiNetwork {
     fun client(baseUrl: ApiBaseUrl): OkHttpClient = OkHttpClient.Builder()
+        .eventListenerFactory { call ->
+            val trace = call.request().tag(RequestDispatchTrace::class.java)
+            object : okhttp3.EventListener() {
+                override fun callStart(call: okhttp3.Call) { trace?.observado = true }
+                override fun requestHeadersStart(call: okhttp3.Call) { trace?.cabecerasIniciadas = true }
+                override fun callFailed(call: okhttp3.Call, ioe: IOException) {
+                    // Un timeout o un fallo genérico no demuestra que la solicitud no se haya enviado.
+                    trace?.falloPrevioConfirmado = ioe is java.net.UnknownHostException ||
+                        ioe is java.net.ConnectException || ioe is javax.net.ssl.SSLHandshakeException ||
+                        ioe is javax.net.ssl.SSLPeerUnverifiedException
+                }
+            }
+        }
         .followRedirects(false)
         .followSslRedirects(false)
         .retryOnConnectionFailure(false)
@@ -27,8 +40,8 @@ object ApiNetwork {
         .addInterceptor(originGuard(baseUrl))
         .addNetworkInterceptor { chain ->
             val response = chain.proceed(chain.request())
-            // OkHttp 4.12 may follow 503 + Retry-After: 0 independently of the connection
-            // retry flag. This API exposes errors to the caller instead of replaying writes.
+            // OkHttp 4.12 puede reintentar tras un 503 con Retry-After: 0 aunque se desactiven
+            // los reintentos de conexión. Se devuelve el error sin repetir escrituras.
             if (response.code == 503) response.newBuilder().removeHeader("Retry-After").build()
             else response
         }
@@ -43,7 +56,7 @@ object ApiNetwork {
 
     fun retrofit(baseUrl: ApiBaseUrl): Retrofit = retrofit(baseUrl, client(baseUrl))
 
-    // Internal injection permits HTTPS certificates in local tests, not insecure production modes.
+    // Permite inyectar certificados HTTPS para pruebas locales sin habilitar modos inseguros en producción.
     internal fun retrofit(baseUrl: ApiBaseUrl, transport: OkHttpClient): Retrofit =
         Retrofit.Builder().baseUrl(baseUrl.url)
             .client(transport.newBuilder()
@@ -67,7 +80,7 @@ private class CheckedGsonConverter(gson: Gson) : Converter.Factory() {
         delegate.requestBodyConverter(type, parameterAnnotations, methodAnnotations, retrofit)
 }
 
-// Retrofit can buffer the body before invoking a converter. Preserve the response-read phase.
+// Retrofit puede leer el cuerpo antes de invocar el conversor; conserva la distinción entre lectura y conversión.
 private class CheckedResponseBody(private val delegate: ResponseBody) : ResponseBody() {
     private val checkedSource: BufferedSource by lazy {
         object : ForwardingSource(delegate.source()) {

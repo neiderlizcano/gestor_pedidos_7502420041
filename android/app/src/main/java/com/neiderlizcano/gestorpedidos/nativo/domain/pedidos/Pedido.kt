@@ -19,7 +19,7 @@ data class Pedido(
     val propina: BigDecimal
 )
 
-// Only editable fields; identity and ownership are determined by the backend.
+// Solo contiene campos editables; el backend determina la identidad y el propietario.
 data class DatosPedido(
     val fecha: LocalDate,
     val fechaEnvio: LocalDate,

@@ -10,7 +10,7 @@ internal fun PaginaPedidosDto.toPagina(): PaginaReporte<PedidoReporte> {
     val items = requiredField(contenido)
     val number = requiredField(pagina)
     val size = requiredField(tamano)
-    // Response schema checks, not client-side authorization or request business rules.
+    // Valida la estructura de la respuesta; la autorización y las reglas de negocio permanecen en el servidor.
     if (number < 0 || size !in 1..100 || items.size > size) throw InvalidPayloadException()
     return PaginaReporte(items.map { requiredField(it).toReporte() }, number, size, requiredField(haySiguiente))
 }

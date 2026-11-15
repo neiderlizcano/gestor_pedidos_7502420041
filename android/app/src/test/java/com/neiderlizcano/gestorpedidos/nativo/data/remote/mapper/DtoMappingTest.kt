@@ -77,7 +77,7 @@ class DtoMappingTest {
         val dto = gson.fromJson(ORDER_JSON, PedidoDto::class.java)
         val pedido = dto.toPedido()
         val reporte = dto.toReporte()
-        // Compare all fields structurally, not just a sample of dates or amounts.
+        // Compara todos los campos para detectar pérdidas o cambios durante el mapeo.
         assertEquals(gson.toJsonTree(pedido), gson.toJsonTree(reporte))
         assertEquals(gson.fromJson(ORDER_JSON, JsonObject::class.java), gson.toJsonTree(pedido))
         assertEquals(LocalDate.of(2026, 11, 15), reporte.fechaEnvio)

@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 import java.math.BigDecimal
 import java.time.LocalDate
 
-// Nullable wire fields allow explicit missing/null validation before constructing domain.
+// Los campos HTTP anulables permiten detectar ausencias y valores null antes de construir el modelo de dominio.
 data class PedidoDto(
     @SerializedName("id") val id: Long?,
     @SerializedName("fecha") val fecha: LocalDate?,

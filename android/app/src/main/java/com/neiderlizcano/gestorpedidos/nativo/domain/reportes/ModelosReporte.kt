@@ -3,7 +3,7 @@ package com.neiderlizcano.gestorpedidos.nativo.domain.reportes
 import java.math.BigDecimal
 import java.time.LocalDate
 
-// Shared SC-PROP-REPORTES contract; no UI or transport dependency.
+// Contrato compartido SC-PROP-REPORTES, independiente de la interfaz y del transporte.
 data class FiltroEstadoFechas(
     val estado: String? = null,
     val desde: LocalDate? = null,

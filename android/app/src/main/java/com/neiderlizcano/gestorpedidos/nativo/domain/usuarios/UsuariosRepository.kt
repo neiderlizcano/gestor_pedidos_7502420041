@@ -2,7 +2,7 @@ package com.neiderlizcano.gestorpedidos.nativo.domain.usuarios
 
 import com.neiderlizcano.gestorpedidos.nativo.core.result.AppResult
 
-/** Own profile only. eliminarCuentaPropia also removes the Auth account on the server. */
+/** Solo permite operar sobre el perfil propio. eliminarCuentaPropia también elimina la cuenta Auth en el servidor. */
 interface UsuariosRepository {
     suspend fun crearPerfil(datos: DatosPerfil): AppResult<Perfil>
     suspend fun consultarPerfilPropio(): AppResult<Perfil>

@@ -27,7 +27,7 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 
-// Test-only payload, unrelated to business DTOs.
+// Datos exclusivos de prueba, independientes de los DTO de negocio.
 data class WirePayload(val label: String?, val amount: BigDecimal?, val date: LocalDate?)
 interface ProbeApi {
     @DELETE("probe") suspend fun delete(@Header("Authorization") header: String): Response<Unit>

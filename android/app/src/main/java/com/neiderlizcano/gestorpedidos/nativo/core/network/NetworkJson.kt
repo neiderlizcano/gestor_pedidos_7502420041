@@ -12,7 +12,7 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
-// No response values or causes are retained in this public exception.
+// Esta excepción pública no conserva datos de la respuesta ni la causa.
 class InvalidPayloadException : IOException("Respuesta API inválida.")
 
 fun <T : Any> requiredField(value: T?): T = value ?: throw InvalidPayloadException()
@@ -28,8 +28,8 @@ object NetworkJson {
         .registerTypeAdapter(Boolean::class.javaObjectType, StrictBooleanAdapter().nullSafe())
         .create()
 
-    // Gson normally coerces numeric/boolean values into strings and truncates some integers.
-    // Wire DTOs must preserve the declared JSON types instead of silently accepting bad data.
+    // Gson puede convertir números y booleanos en cadenas y truncar algunos valores enteros.
+    // Los DTO HTTP deben respetar los tipos JSON declarados y rechazar datos inválidos.
     private class StrictStringAdapter : TypeAdapter<String>() {
         override fun read(reader: JsonReader): String {
             if (reader.peek() != JsonToken.STRING) throw InvalidPayloadException()

@@ -14,15 +14,15 @@ import com.neiderlizcano.gestorpedidos.nativo.domain.pedidos.PedidosRepository
 import com.neiderlizcano.gestorpedidos.nativo.domain.reportes.ReportesRepository
 import com.neiderlizcano.gestorpedidos.nativo.domain.usuarios.UsuariosRepository
 
-/** Composition root only: callers supply the approved HTTPS URL and current-token provider. */
+/** Construye las dependencias con la URL HTTPS aprobada y el proveedor del token actual. */
 class AppContainer(baseUrl: String, tokens: AccessTokenProvider) {
     private val apiBaseUrl = ApiBaseUrl(baseUrl)
-    val httpClient = ApiNetwork.client(apiBaseUrl)
+    private val httpClient = ApiNetwork.client(apiBaseUrl)
     private val retrofit = ApiNetwork.retrofit(apiBaseUrl, httpClient)
     private val executor = ApiRequestExecutor(tokens)
-    val usuariosApi: UsuariosApi = retrofit.create(UsuariosApi::class.java)
-    val pedidosApi: PedidosApi = retrofit.create(PedidosApi::class.java)
-    val reportesApi: ReportesApi = retrofit.create(ReportesApi::class.java)
+    private val usuariosApi: UsuariosApi = retrofit.create(UsuariosApi::class.java)
+    private val pedidosApi: PedidosApi = retrofit.create(PedidosApi::class.java)
+    private val reportesApi: ReportesApi = retrofit.create(ReportesApi::class.java)
     val usuariosRepository: UsuariosRepository = HttpUsuariosRepository(usuariosApi, executor)
     val pedidosRepository: PedidosRepository = HttpPedidosRepository(pedidosApi, executor)
     val reportesRepository: ReportesRepository = HttpReportesRepository(reportesApi, executor)

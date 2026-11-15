@@ -6,7 +6,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
 
-/** Small fake usable by future report ViewModels without transport, Auth, or Android. */
+/** Repositorio simulado para probar ViewModels de reportes sin red, autenticación ni Android. */
 private class ReportesSimulados : ReportesRepository {
     var paginaRecibida: SolicitudPagina? = null
     var filtroRecibido: FiltroEstadoFechas? = null

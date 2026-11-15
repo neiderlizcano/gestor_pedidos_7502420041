@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
 }
+fun publicConfig(name: String): String = "\"" + providers.gradleProperty(name).orElse("").get()
+    .replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r") + "\""
 android {
     namespace = "com.neiderlizcano.gestorpedidos.nativo"
     compileSdk = 37
@@ -11,8 +13,12 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
+        buildConfigField("String", "PUBLIC_API_URL", publicConfig("GESTOR_API_URL"))
+        buildConfigField("String", "PUBLIC_AUTH_URL", publicConfig("GESTOR_AUTH_URL"))
+        buildConfigField("String", "PUBLIC_AUTH_KEY", publicConfig("GESTOR_AUTH_PUBLIC_KEY"))
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -35,4 +41,11 @@ dependencies {
     testImplementation(libs.mockwebserver)
     testImplementation(libs.okhttp.tls)
     testImplementation(libs.junit)
+    testImplementation(libs.coroutines.test)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.compose.ui.test)
+    androidTestImplementation(libs.espresso.core)
+    debugImplementation(libs.compose.ui.test.manifest)
 }

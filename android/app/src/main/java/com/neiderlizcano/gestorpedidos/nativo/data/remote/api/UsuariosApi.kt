@@ -14,7 +14,7 @@ interface UsuariosApi {
     @PUT("api/v1/usuarios/me")
     suspend fun actualizar(@Header("Authorization") authorization: String, @Body datos: PerfilSolicitudDto): Response<PerfilDto>
 
-    // Intentionally no body, query, or Content-Type: the server rejects them for account deletion.
+    // La eliminación de cuenta no envía cuerpo, parámetros ni Content-Type porque el servidor los rechaza.
     @DELETE("api/v1/usuarios/me")
     suspend fun eliminar(@Header("Authorization") authorization: String): Response<Unit>
 }

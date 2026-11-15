@@ -22,7 +22,7 @@ internal fun PerfilDto.toReporte(): PerfilReporte = toPerfil().let {
 }
 internal fun DatosPerfil.toSolicitud(): PerfilSolicitudDto = PerfilSolicitudDto(username, nombre)
 
-// A report cannot turn into a global list; reject a response outside its 0..1 wire contract.
+// Rechaza respuestas con más de un perfil: el contrato del reporte permite cero o uno.
 internal fun List<PerfilDto?>.toReportePerfiles(): List<PerfilReporte> {
     if (size > 1) throw InvalidPayloadException()
     return map { requiredField(it).toReporte() }
