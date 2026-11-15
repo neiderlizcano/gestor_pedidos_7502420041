@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ubicacion_usar">Usar mi ubicación</string>
+    <string name="ubicacion_cancelar">Cancelar</string>
+    <string name="ubicacion_abrir_ajustes">Abrir ajustes de la aplicación</string>
+    <string name="ubicacion_abrir_ajustes_ubicacion">Abrir ajustes de ubicación</string>
+
+    <string name="ubicacion_hint">Se usa tu ubicación solo ahora, al pulsar el botón. Podrás editar todos los campos.</string>
+    <string name="ubicacion_solicitando">Esperando tu respuesta al permiso de ubicación…</string>
+    <string name="ubicacion_permiso_denegado">No se concedió el permiso de ubicación. Puedes escribir la dirección manualmente o volver a pulsar el botón.</string>
+    <string name="ubicacion_permiso_bloqueado">El permiso de ubicación está bloqueado. Puedes habilitarlo en los ajustes de la aplicación o escribir la dirección manualmente.</string>
+    <string name="ubicacion_desactivada">La ubicación del dispositivo está desactivada. Actívala e inténtalo de nuevo, o escribe la dirección manualmente.</string>
+    <string name="ubicacion_obteniendo">Obteniendo tu posición…</string>
+    <string name="ubicacion_resolviendo">Buscando la dirección…</string>
+    <string name="ubicacion_completado">Se completaron los campos disponibles. Revisa y corrige lo que haga falta.</string>
+    <string name="ubicacion_no_obtenido">No se obtuvo: %1$s.</string>
+
+    <string name="ubicacion_campo_pais">país</string>
+    <string name="ubicacion_campo_departamento">departamento</string>
+    <string name="ubicacion_campo_ciudad">ciudad</string>
+    <string name="ubicacion_campo_nomenclatura">nomenclatura de la vivienda</string>
+
+    <string name="ubicacion_aviso_ciudad">La ciudad es aproximada: verifícala.</string>
+    <string name="ubicacion_aviso_sin_numero">Falta el número de la vivienda: escríbelo manualmente.</string>
+    <string name="ubicacion_aviso_numero_sin_calle">El servicio dio un número sin calle y no se usó.</string>
+    <string name="ubicacion_aviso_aproximada">Solo concediste ubicación aproximada; es posible que falten la calle y el número.</string>
+
+    <string name="ubicacion_error_proveedor">No se pudo usar un proveedor de ubicación. Comprueba el GPS o la ubicación aproximada.</string>
+    <string name="ubicacion_error_tiempo">No se obtuvo la posición a tiempo. Ve a un lugar abierto e inténtalo de nuevo.</string>
+    <string name="ubicacion_error_conexion">No se pudo consultar el servicio de direcciones. Comprueba tu conexión a Internet.</string>
+    <string name="ubicacion_error_servicio">Este dispositivo no incluye un servicio de direcciones. Escribe la dirección manualmente.</string>
+    <string name="ubicacion_error_sin_resultados">No se encontró ninguna dirección para tu posición. Escríbela manualmente.</string>
+    <string name="ubicacion_error_fallo">No se pudo obtener la dirección. Inténtalo de nuevo o escríbela manualmente.</string>
+</resources>
