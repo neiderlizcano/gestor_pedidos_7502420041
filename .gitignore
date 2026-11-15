@@ -2,3 +2,44 @@
 *.log
 Thumbs.db
 .DS_Store
+# Configuracion y herramientas locales
+AGENTS.md
+opencode.json
+/CERTIFICADO_SUPABASE/
+/.postman/
+/postman/
+/app/salida/
+
+# Variantes locales de Kodular (conservar V9)
+/app/GestorPedidos_FINAL_RECUPERACIONCLAVE_PRO.aia
+/app/GestorPedidos_FINAL_V2.aia
+
+# Entornos y secretos; solo plantillas publicas sin credenciales
+.env
+.env.*
+*.env
+*.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Certificados, claves privadas y almacenes de claves
+*.crt
+*.cer
+*.der
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.pkcs12
+*.jks
+*.keystore
+
+# Android: configuracion local y resultados generados
+/android/local.properties
+/android/.gradle/
+/android/.kotlin/
+/android/.idea/
+/android/**/build/
+/android/captures/
