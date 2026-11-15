@@ -1,7 +1,15 @@
 package com.neiderlizcano.gestorpedidos.nativo.ui.perfil
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
+import com.neiderlizcano.gestorpedidos.nativo.ui.components.BotonApp
+import com.neiderlizcano.gestorpedidos.nativo.ui.components.EstiloBoton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
@@ -60,26 +68,30 @@ internal fun PerfilScreen(state: PerfilUiState, vm: PerfilViewModel) {
             R.string.perfil_delete_uncertain else R.string.perfil_write_uncertain), color = MaterialTheme.colorScheme.error,
             modifier = Modifier.testTag("perfilUncertain"))
         if (state.deleted) Text(stringResource(R.string.perfil_deleted)) else {
-            TextButton(onClick = vm::consultar, enabled = !state.busy, modifier = Modifier.testTag("perfilConsultar")) { Text(stringResource(R.string.perfil_refresh)) }
+            BotonApp(stringResource(R.string.perfil_refresh), vm::consultar, Modifier.fillMaxWidth().testTag("perfilConsultar"), EstiloBoton.SECUNDARIO,
+                Icons.Filled.Refresh, enabled = !state.busy)
             if (state.editing) {
                 OutlinedTextField(state.username, vm::cambiarUsername, enabled = !state.busy, singleLine = true,
-                    label = { Text(stringResource(R.string.perfil_username)) }, isError = state.usernameRequired,
+                    label = { Text(stringResource(R.string.perfil_username)) }, isError = state.usernameRequired, colors = com.neiderlizcano.gestorpedidos.nativo.ui.pedidos.colorCampo(),
                     supportingText = { if (state.usernameRequired) Text(stringResource(R.string.perfil_required)) },
                     modifier = Modifier.fillMaxWidth().testTag("perfilUsername"))
                 OutlinedTextField(state.nombre, vm::cambiarNombre, enabled = !state.busy, singleLine = true,
-                    label = { Text(stringResource(R.string.perfil_nombre)) }, isError = state.nombreRequired,
+                    label = { Text(stringResource(R.string.perfil_nombre)) }, isError = state.nombreRequired, colors = com.neiderlizcano.gestorpedidos.nativo.ui.pedidos.colorCampo(),
                     supportingText = { if (state.nombreRequired) Text(stringResource(R.string.perfil_required)) },
                     modifier = Modifier.fillMaxWidth().testTag("perfilNombre"))
                 Text(stringResource(R.string.perfil_email_readonly))
                 Text(state.perfil?.email ?: stringResource(R.string.perfil_email_auth), modifier = Modifier.testTag("perfilCorreo"))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(onClick = vm::cancelar, enabled = !state.busy, modifier = Modifier.weight(1f).testTag("perfilCancelar")) { Text(stringResource(R.string.perfil_cancel)) }
-                    Button(onClick = vm::guardar, enabled = !state.busy && state.uncertain == null, modifier = Modifier.weight(1f).testTag("perfilGuardar")) { Text(stringResource(R.string.perfil_save)) }
+                    BotonApp(stringResource(R.string.perfil_cancel), vm::cancelar, Modifier.weight(1f).testTag("perfilCancelar"), EstiloBoton.SECUNDARIO,
+                        Icons.Filled.Close, enabled = !state.busy)
+                    BotonApp(stringResource(R.string.perfil_save), vm::guardar, Modifier.weight(1f).testTag("perfilGuardar"), icono = Icons.Filled.Check,
+                        enabled = !state.busy && state.uncertain == null, cargando = state.busy)
                 }
             } else {
                 if (state.missing) {
                     Text(stringResource(R.string.perfil_missing), modifier = Modifier.testTag("perfilMissing"))
-                    Button(onClick = vm::crear, enabled = !state.busy && state.uncertain == null, modifier = Modifier.testTag("perfilCrear")) { Text(stringResource(R.string.perfil_create)) }
+                    BotonApp(stringResource(R.string.perfil_create), vm::crear, Modifier.fillMaxWidth().testTag("perfilCrear"), icono = Icons.Filled.Add,
+                        enabled = !state.busy && state.uncertain == null)
                 }
                 state.perfil?.let { perfil ->
                     OutlinedCard(Modifier.fillMaxWidth()) {
@@ -95,21 +107,18 @@ internal fun PerfilScreen(state: PerfilUiState, vm: PerfilViewModel) {
                 }
                 // Editar es la acción principal; eliminar la cuenta queda diferenciado en rojo y pide confirmación.
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    if (state.perfil != null) Button(onClick = vm::editar, enabled = !state.busy && state.uncertain == null,
-                        modifier = Modifier.weight(1f).testTag("perfilEditar")) { Text(stringResource(R.string.perfil_edit)) }
-                    if (state.missing || state.perfil != null) OutlinedButton(onClick = vm::pedirEliminar,
-                        enabled = !state.busy && state.uncertain == null,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                        modifier = Modifier.weight(1f).testTag("perfilEliminar")) { Text(stringResource(R.string.perfil_delete)) }
+                    if (state.perfil != null) BotonApp(stringResource(R.string.perfil_edit), vm::editar, Modifier.weight(1f).testTag("perfilEditar"),
+                        icono = Icons.Filled.Edit, enabled = !state.busy && state.uncertain == null)
+                    if (state.missing || state.perfil != null) BotonApp(stringResource(R.string.perfil_delete), vm::pedirEliminar,
+                        Modifier.weight(1f).testTag("perfilEliminar"), EstiloBoton.PELIGRO, Icons.Filled.Delete, enabled = !state.busy && state.uncertain == null)
                 }
             }
         }
     }
     if (state.confirmDelete) AlertDialog(onDismissRequest = vm::cancelarEliminar,
         title = { Text(stringResource(R.string.perfil_delete)) }, text = { Text(stringResource(R.string.perfil_delete_warning)) },
-        confirmButton = { TextButton(onClick = vm::eliminar, modifier = Modifier.testTag("perfilConfirmarEliminar")) { Text(stringResource(R.string.perfil_confirm_delete)) } },
-        dismissButton = { TextButton(onClick = vm::cancelarEliminar, modifier = Modifier.testTag("perfilCancelarEliminar")) { Text(stringResource(R.string.perfil_cancel)) } })
+        confirmButton = { BotonApp(stringResource(R.string.perfil_confirm_delete), vm::eliminar, Modifier.testTag("perfilConfirmarEliminar"), EstiloBoton.PELIGRO, Icons.Filled.Delete) },
+        dismissButton = { BotonApp(stringResource(R.string.perfil_cancel), vm::cancelarEliminar, Modifier.testTag("perfilCancelarEliminar"), EstiloBoton.SECUNDARIO) })
 }
 private fun iniciales(nombre: String): String =
     nombre.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }.take(2).joinToString("") { it.take(1).uppercase() }.ifEmpty { "?" }

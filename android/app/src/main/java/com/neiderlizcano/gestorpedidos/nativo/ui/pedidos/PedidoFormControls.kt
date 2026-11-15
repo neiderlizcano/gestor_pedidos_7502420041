@@ -12,12 +12,20 @@ import androidx.compose.ui.unit.dp
 import com.neiderlizcano.gestorpedidos.nativo.R
 import java.time.LocalDate
 
+/** Fondo blanco de los campos, como en la maqueta: se distinguen del gris claro de la pantalla. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun colorCampo() = OutlinedTextFieldDefaults.colors(
+    focusedContainerColor = MaterialTheme.colorScheme.surface, unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+    errorContainerColor = MaterialTheme.colorScheme.surface, disabledContainerColor = MaterialTheme.colorScheme.surface)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PedidoDateField(value: String, title: Int, tag: String, enabled: Boolean, error: Int?, onChange: (String) -> Unit) {
     var open by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth()) {
-        OutlinedButton(onClick = { open = true }, enabled = enabled,
+        OutlinedButton(onClick = { open = true }, enabled = enabled, shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface),
             border = BorderStroke(1.dp, if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline),
             modifier = Modifier.fillMaxWidth().testTag(tag)) {
             Column(Modifier.fillMaxWidth()) {
@@ -50,7 +58,7 @@ internal fun PedidoEstadoField(value: String, enabled: Boolean, error: Int?, onC
     // Lista cerrada: no se escribe a mano, por lo que el teclado no aparece ni tapa el campo.
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { if (enabled) expanded = !expanded }) {
         OutlinedTextField(value = value.ifEmpty { ESTADO_PLACEHOLDER }, onValueChange = {}, readOnly = true, singleLine = true, enabled = enabled,
-            label = { Text(stringResource(R.string.pedido_estado)) }, isError = error != null,
+            label = { Text(stringResource(R.string.pedido_estado)) }, isError = error != null, colors = colorCampo(),
             // El error queda justo debajo del campo; sin error se muestra una ayuda corta.
             supportingText = { Text(stringResource(error ?: R.string.pedido_estado_help), modifier = if (error != null) Modifier.testTag("pedidoError_ESTADO") else Modifier) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },

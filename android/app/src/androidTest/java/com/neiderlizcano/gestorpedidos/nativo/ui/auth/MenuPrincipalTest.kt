@@ -41,6 +41,29 @@ class MenuPrincipalTest {
         compose.onAllNodesWithTag("navInicio").assertCountEquals(0)
     }
 
+    @Test fun elBotonUsarMiUbicacionSoloExisteEnCrearYActualizarPedido() {
+        install(PedidosTestRuntime())
+        // Menú, listado y detalle no lo muestran.
+        compose.onAllNodesWithTag("ubicacionUsar").assertCountEquals(0)
+        compose.onNodeWithTag("navPedidos").performClick()
+        compose.onAllNodesWithTag("ubicacionUsar").assertCountEquals(0)
+        compose.onNodeWithTag("pedidoRow_1").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("pedidoEditar").fetchSemanticsNodes().isNotEmpty() }
+        compose.onAllNodesWithTag("ubicacionUsar").assertCountEquals(0)
+        // Actualizar pedido sí lo muestra, junto a la dirección.
+        compose.onNodeWithTag("pedidoEditar").performClick()
+        show("ubicacionUsar"); compose.onNodeWithTag("ubicacionUsar").assertIsDisplayed()
+        // Crear pedido también.
+        compose.onNodeWithTag("navInicio").performClick()
+        compose.onNodeWithTag("navNuevo").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("pedidoField_FECHA").fetchSemanticsNodes().isNotEmpty() }
+        show("ubicacionUsar"); compose.onNodeWithTag("ubicacionUsar").assertIsDisplayed()
+        // El perfil no lo muestra.
+        compose.onNodeWithTag("navInicio").performClick()
+        compose.onNodeWithTag("navPerfil").performClick()
+        compose.onAllNodesWithTag("ubicacionUsar").assertCountEquals(0)
+    }
+
     @Test fun pedidosYInicioNavegaSinDuplicarFilas() {
         install(PedidosTestRuntime())
         compose.onNodeWithTag("navPedidos").performClick()

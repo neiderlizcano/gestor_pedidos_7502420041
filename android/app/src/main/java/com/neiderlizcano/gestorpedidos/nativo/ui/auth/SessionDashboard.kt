@@ -1,7 +1,13 @@
 package com.neiderlizcano.gestorpedidos.nativo.ui.auth
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -29,6 +36,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.neiderlizcano.gestorpedidos.nativo.R
 import com.neiderlizcano.gestorpedidos.nativo.domain.pedidos.PedidosRepository
+import com.neiderlizcano.gestorpedidos.nativo.ui.components.BotonApp
+import com.neiderlizcano.gestorpedidos.nativo.ui.components.EstiloBoton
 import com.neiderlizcano.gestorpedidos.nativo.domain.usuarios.UsuariosRepository
 import com.neiderlizcano.gestorpedidos.nativo.ui.pedidos.PedidosRoute
 import com.neiderlizcano.gestorpedidos.nativo.ui.perfil.PerfilRoute
@@ -103,27 +112,37 @@ private fun MenuPrincipal(onPedidos: () -> Unit, onNuevo: () -> Unit, onPerfil: 
         }
         Column(Modifier.navigationBarsPadding().padding(horizontal = 24.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max)) {
-                TarjetaMenu(R.string.menu_pedidos, R.string.menu_pedidos_desc, Icons.AutoMirrored.Filled.List, "navPedidos", Modifier.weight(1f).fillMaxHeight(), onClick = onPedidos)
-                TarjetaMenu(R.string.menu_nuevo, R.string.menu_nuevo_desc, Icons.Filled.Add, "navNuevo", Modifier.weight(1f).fillMaxHeight(), onClick = onNuevo)
+                TarjetaMenu(R.string.menu_pedidos, R.string.menu_pedidos_desc, Icons.AutoMirrored.Filled.List, "navPedidos", Modifier.weight(1f).fillMaxHeight(), orden = 0, onClick = onPedidos)
+                TarjetaMenu(R.string.menu_nuevo, R.string.menu_nuevo_desc, Icons.Filled.Add, "navNuevo", Modifier.weight(1f).fillMaxHeight(), orden = 1, onClick = onNuevo)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max)) {
-                TarjetaMenu(R.string.menu_reportes, R.string.menu_pending, Icons.Filled.Info, "navReportes", Modifier.weight(1f).fillMaxHeight(), enabled = false)
-                TarjetaMenu(R.string.menu_sensores, R.string.menu_pending, Icons.Filled.Settings, "navSensores", Modifier.weight(1f).fillMaxHeight(), enabled = false)
+                TarjetaMenu(R.string.menu_reportes, R.string.menu_pending, Icons.Filled.Info, "navReportes", Modifier.weight(1f).fillMaxHeight(), orden = 2, enabled = false)
+                TarjetaMenu(R.string.menu_sensores, R.string.menu_pending, Icons.Filled.Settings, "navSensores", Modifier.weight(1f).fillMaxHeight(), orden = 3, enabled = false)
             }
-            TarjetaMenu(R.string.menu_perfil, R.string.menu_perfil_desc, Icons.Filled.Person, "navPerfil", Modifier.fillMaxWidth(), onClick = onPerfil)
-            OutlinedButton(onClick = onLogout, enabled = logoutEnabled, shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag("authLogout")) {
-                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.auth_logout))
-            }
+            TarjetaMenu(R.string.menu_perfil, R.string.menu_perfil_desc, Icons.Filled.Person, "navPerfil", Modifier.fillMaxWidth(), orden = 4, onClick = onPerfil)
+            BotonApp(stringResource(R.string.auth_logout), onLogout, Modifier.fillMaxWidth().testTag("authLogout"), EstiloBoton.SECUNDARIO,
+                Icons.AutoMirrored.Filled.ExitToApp, enabled = logoutEnabled)
         }
     }
 }
 
 @Composable
-private fun TarjetaMenu(title: Int, subtitle: Int, icon: ImageVector, tag: String, modifier: Modifier, enabled: Boolean = true, onClick: () -> Unit = {}) {
-    ElevatedCard(onClick = onClick, enabled = enabled, shape = RoundedCornerShape(18.dp), modifier = modifier.heightIn(min = 112.dp).testTag(tag)) {
+private fun TarjetaMenu(
+    title: Int, subtitle: Int, icon: ImageVector, tag: String, modifier: Modifier, orden: Int, enabled: Boolean = true, onClick: () -> Unit = {}
+) {
+    // Entrada escalonada (aparece y sube) y reducción elástica al pulsar; sin animaciones infinitas.
+    var entro by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entro = true }
+    val aparicion by animateFloatAsState(if (entro) 1f else 0f, tween(durationMillis = 350, delayMillis = orden * 70), label = "aparicionTarjeta")
+    val interaccion = remember { MutableInteractionSource() }
+    val presionada by interaccion.collectIsPressedAsState()
+    val escala by animateFloatAsState(if (presionada && enabled) 0.96f else 1f,
+        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium), label = "escalaTarjeta")
+    ElevatedCard(onClick = onClick, enabled = enabled, interactionSource = interaccion, shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface, disabledContainerColor = MaterialTheme.colorScheme.surface),
+        modifier = modifier.heightIn(min = 112.dp).graphicsLayer {
+            alpha = aparicion; translationY = (1f - aparicion) * 24.dp.toPx(); scaleX = escala; scaleY = escala
+        }.testTag(tag)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Box(Modifier.size(40.dp).background(if (enabled) Color(0xFFDBEAFE) else MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center) {

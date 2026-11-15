@@ -1,7 +1,16 @@
 package com.neiderlizcano.gestorpedidos.nativo.ui.pedidos
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
+import com.neiderlizcano.gestorpedidos.nativo.ui.components.BotonApp
+import com.neiderlizcano.gestorpedidos.nativo.ui.components.EstiloBoton
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -67,7 +76,7 @@ internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {
     }
     Row(Modifier.fillMaxSize().imePadding().navigationBarsPadding()) {
     LazyColumn(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 24.dp).testTag("pedidosScreen"), state = scroll,
-        verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(bottom = 32.dp)) {
+        verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp)) {
         item {
             Text(stringResource(when (state.page) {
                 PedidosPage.LISTA -> R.string.pedidos_title
@@ -79,13 +88,13 @@ internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {
         state.error?.let { error -> item {
             Text(stringResource(errorMessage(error, state.writeFailure)), color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.testTag("pedidosError"))
-            if (state.writeFailure && !state.needsReconciliation) TextButton(onClick = vm::cargar, enabled = !state.busy) { Text(stringResource(R.string.pedidos_check)) }
+            if (state.writeFailure && !state.needsReconciliation) BotonApp(stringResource(R.string.pedidos_check), vm::cargar,
+                estilo = EstiloBoton.SECUNDARIO, icono = Icons.Filled.Refresh, enabled = !state.busy)
         } }
         if (state.needsReconciliation) item {
             Text(stringResource(R.string.pedidos_reconciliation), color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = vm::cargar, enabled = !state.busy, modifier = Modifier.testTag("pedidosComprobar")) {
-                Text(stringResource(R.string.pedidos_check))
-            }
+            BotonApp(stringResource(R.string.pedidos_check), vm::cargar, Modifier.testTag("pedidosComprobar"), EstiloBoton.SECUNDARIO,
+                Icons.Filled.Refresh, enabled = !state.busy)
         }
         state.exito?.let { exito -> item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer), modifier = Modifier.fillMaxWidth()) {
@@ -100,17 +109,16 @@ internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {
             PedidosPage.LISTA -> {
                 item {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = vm::nuevo, enabled = !state.busy, modifier = Modifier.testTag("pedidoNuevo")) { Text(stringResource(R.string.pedidos_new)) }
-                        TextButton(onClick = vm::cargar, enabled = !state.busy, modifier = Modifier.testTag("pedidosRefresh")) { Text(stringResource(R.string.pedidos_refresh)) }
+                        BotonApp(stringResource(R.string.pedidos_new), vm::nuevo, Modifier.testTag("pedidoNuevo"), icono = Icons.Filled.Add, enabled = !state.busy)
+                        BotonApp(stringResource(R.string.pedidos_refresh), vm::cargar, Modifier.testTag("pedidosRefresh"), EstiloBoton.SECUNDARIO, Icons.Filled.Refresh, enabled = !state.busy)
                     }
-                    if (state.dirty) TextButton(onClick = vm::continuar, enabled = !state.busy) { Text(stringResource(R.string.pedidos_resume)) }
+                    if (state.dirty) BotonApp(stringResource(R.string.pedidos_resume), vm::continuar, estilo = EstiloBoton.SECUNDARIO, icono = Icons.Filled.Edit, enabled = !state.busy)
                     when {
                         // Primera consulta en curso: no se muestra «vacío» ni una lista a medias.
                         !state.cargado && state.busy -> Text(stringResource(R.string.pedidos_loading), modifier = Modifier.testTag("pedidosCargando"))
                         // La primera consulta falló: se explica y se ofrece reintentar en lugar de una lista vacía engañosa.
-                        !state.cargado && state.error != null -> Button(onClick = vm::cargar, enabled = !state.busy, modifier = Modifier.testTag("pedidosReintentar")) {
-                            Text(stringResource(R.string.pedidos_retry))
-                        }
+                        !state.cargado && state.error != null -> BotonApp(stringResource(R.string.pedidos_retry), vm::cargar,
+                            Modifier.testTag("pedidosReintentar"), icono = Icons.Filled.Refresh, enabled = !state.busy)
                         state.cargado && state.items.isEmpty() && !state.busy && state.error == null -> Text(stringResource(R.string.pedidos_empty))
                     }
                 }
@@ -146,11 +154,9 @@ internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {
                     item {
                         // Editar es la acción principal; Eliminar queda diferenciado en rojo y siempre pide confirmación.
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                            Button(onClick = vm::editar, enabled = !state.busy, modifier = Modifier.weight(1f).testTag("pedidoEditar")) { Text(stringResource(R.string.pedidos_edit)) }
-                            OutlinedButton(onClick = vm::pedirEliminar, enabled = !state.busy && !state.needsReconciliation,
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                                modifier = Modifier.weight(1f).testTag("pedidoEliminar")) { Text(stringResource(R.string.pedidos_delete)) }
+                            BotonApp(stringResource(R.string.pedidos_edit), vm::editar, Modifier.weight(1f).testTag("pedidoEditar"), icono = Icons.Filled.Edit, enabled = !state.busy)
+                            BotonApp(stringResource(R.string.pedidos_delete), vm::pedirEliminar, Modifier.weight(1f).testTag("pedidoEliminar"), EstiloBoton.PELIGRO,
+                                Icons.Filled.Delete, enabled = !state.busy && !state.needsReconciliation)
                         }
                     }
                 }
@@ -175,7 +181,7 @@ internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {
                     } else {
                     CampoVisible {
                         OutlinedTextField(state.draft[field], { vm.cambiar(field, it) }, label = { Text(stringResource(label(field))) },
-                            enabled = !state.busy, singleLine = true, isError = field in state.issues,
+                            enabled = !state.busy, singleLine = true, isError = field in state.issues, colors = colorCampo(),
                             supportingText = { state.issues[field]?.let { Text(stringResource(issueMessage(it)), modifier = Modifier.testTag("pedidoError_" + field.name)) } }, modifier = Modifier.fillMaxWidth().testTag("pedidoField_" + field.name))
                     }
                     }
@@ -193,23 +199,25 @@ internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {
                 item {
                     // Cancelar descarta el borrador; Guardar es la acción principal. El botón se deshabilita mientras hay un envío en curso.
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(onClick = vm::cargar, enabled = !state.busy, modifier = Modifier.weight(1f).testTag("pedidosVolver")) { Text(stringResource(R.string.pedidos_cancel)) }
-                        Button(onClick = { foco.clearFocus(); teclado?.hide(); vm.guardar() }, enabled = !state.busy && !state.needsReconciliation,
-                            modifier = Modifier.weight(1f).testTag("pedidoGuardar")) { Text(stringResource(R.string.pedidos_save)) }
+                        BotonApp(stringResource(R.string.pedidos_cancel), vm::cargar, Modifier.weight(1f).testTag("pedidosVolver"), EstiloBoton.SECUNDARIO,
+                            Icons.Filled.Close, enabled = !state.busy)
+                        BotonApp(stringResource(R.string.pedidos_save), { foco.clearFocus(); teclado?.hide(); vm.guardar() }, Modifier.weight(1f).testTag("pedidoGuardar"),
+                            icono = Icons.Filled.Check, enabled = !state.busy && !state.needsReconciliation, cargando = state.busy)
                     }
                 }
             }
         }
         if (state.page == PedidosPage.DETALLE) item {
-            TextButton(onClick = vm::cargar, enabled = !state.busy, modifier = Modifier.fillMaxWidth().testTag("pedidosVolver")) { Text(stringResource(R.string.pedidos_back)) }
+            BotonApp(stringResource(R.string.pedidos_back), vm::cargar, Modifier.fillMaxWidth().testTag("pedidosVolver"), EstiloBoton.SECUNDARIO,
+                Icons.AutoMirrored.Filled.ArrowBack, enabled = !state.busy)
         }
     }
     }
     }
     if (state.confirmDelete) AlertDialog(onDismissRequest = vm::cancelarEliminar,
         title = { Text(stringResource(R.string.pedidos_delete)) }, text = { Text(stringResource(R.string.pedidos_delete_question)) },
-        confirmButton = { TextButton(onClick = vm::eliminar, modifier = Modifier.testTag("pedidoConfirmarEliminar")) { Text(stringResource(R.string.pedidos_confirm)) } },
-        dismissButton = { TextButton(onClick = vm::cancelarEliminar, modifier = Modifier.testTag("pedidoCancelarEliminar")) { Text(stringResource(R.string.pedidos_cancel)) } })
+        confirmButton = { BotonApp(stringResource(R.string.pedidos_confirm), vm::eliminar, Modifier.testTag("pedidoConfirmarEliminar"), EstiloBoton.PELIGRO, Icons.Filled.Delete) },
+        dismissButton = { BotonApp(stringResource(R.string.pedidos_cancel), vm::cancelarEliminar, Modifier.testTag("pedidoCancelarEliminar"), EstiloBoton.SECUNDARIO) })
 }
 
 private fun label(field: PedidoField): Int = when (field) {

@@ -1,7 +1,14 @@
 package com.neiderlizcano.gestorpedidos.nativo.ui.auth
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import com.neiderlizcano.gestorpedidos.nativo.ui.components.BotonApp
+import com.neiderlizcano.gestorpedidos.nativo.ui.pedidos.colorCampo
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -97,15 +104,22 @@ internal fun AuthScreen(
                 SessionDashboard(pedidosRepository, usuariosRepository, onLogout, onAccountDeleted, logoutEnabled = !state.busy)
             }
         } else {
-            Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).imePadding().padding(28.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                Icon(painterResource(R.drawable.ic_auth_package), contentDescription = stringResource(R.string.app_name), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp).testTag("authBrand"))
-                Text(stringResource(R.string.app_name), style = MaterialTheme.typography.displaySmall)
+            // Cabecera con degradado e ilustración y tarjeta blanca flotante con el formulario, como en la maqueta.
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().navigationBarsPadding()) {
+                Box(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF1E5B92), Color(0xFF2563EB))),
+                    RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)).statusBarsPadding().displayCutoutPadding()
+                    .padding(top = 12.dp, bottom = 64.dp), contentAlignment = Alignment.Center) {
+                    Image(painterResource(R.drawable.ic_auth_hero), contentDescription = stringResource(R.string.app_name), modifier = Modifier.size(150.dp).testTag("authBrand"))
+                }
+                Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).offset(y = (-40).dp)) {
+                Column(Modifier.padding(horizontal = 20.dp, vertical = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
                 when (state.destination) {
                     AuthDestination.RESTAURANDO -> Text(stringResource(R.string.auth_restoring))
                     AuthDestination.ERROR_RESTAURACION -> {
                         Text(stringResource(R.string.auth_restore_error))
-                        Button(onClick = onRetry, enabled = !state.busy, modifier = Modifier.testTag("authRetry")) { Text(stringResource(R.string.auth_retry)) }
+                        BotonApp(stringResource(R.string.auth_retry), onRetry, Modifier.fillMaxWidth().testTag("authRetry"), enabled = !state.busy)
                         TextButton(onClick = onLogout, enabled = !state.busy) { Text(stringResource(R.string.auth_return_login)) }
                     }
                     AuthDestination.FORMULARIO -> key(state.step) {
@@ -128,43 +142,43 @@ internal fun AuthScreen(
                         when (state.step) {
                             AuthStep.REGISTRO -> {
                                 OutlinedTextField(email, { email = it; onFieldEdited(AuthValidation.EMAIL) }, label = { Text(stringResource(R.string.auth_email)) }, enabled = !state.busy, isError = localError(state, AuthValidation.EMAIL) != null,
-                                    supportingText = { FieldError(localError(state, AuthValidation.EMAIL), "signupEmailError") }, modifier = Modifier.testTag("signupEmail"))
+                                    supportingText = { FieldError(localError(state, AuthValidation.EMAIL), "signupEmailError") }, colors = colorCampo(), modifier = Modifier.fillMaxWidth().testTag("signupEmail"))
                                 PasswordField(password, { password = it; onFieldEdited(AuthValidation.PASSWORD); onFieldEdited(AuthValidation.CONFIRMACION) }, R.string.auth_password, "signupPassword", !state.busy, localError(state, AuthValidation.PASSWORD))
                                 PasswordField(confirm, { confirm = it; onFieldEdited(AuthValidation.CONFIRMACION) }, R.string.auth_confirm, "signupConfirmation", !state.busy, localError(state, AuthValidation.CONFIRMACION))
-                                Button(onClick = { onSignup(email, password, confirm) }, enabled = !state.busy, modifier = Modifier.testTag("signupSubmit")) { Text(stringResource(R.string.auth_signup)) }
+                                BotonApp(stringResource(R.string.auth_signup), { onSignup(email, password, confirm) }, Modifier.fillMaxWidth().testTag("signupSubmit"), enabled = !state.busy, cargando = state.busy)
                             }
                             AuthStep.REGISTRO_ENVIADO -> {
                                 Text(stringResource(R.string.auth_signup_sent))
-                                Button(onClick = onBack) { Text(stringResource(R.string.auth_login_title)) }
+                                BotonApp(stringResource(R.string.auth_login_title), onBack, Modifier.fillMaxWidth())
                             }
                             AuthStep.LOGIN, AuthStep.CORREO -> {
                                 Text(stringResource(if (state.step == AuthStep.LOGIN) R.string.auth_subtitle else R.string.auth_recover_description))
                                 OutlinedTextField(email, { email = it; onFieldEdited(AuthValidation.EMAIL) }, label = { Text(stringResource(R.string.auth_email)) },
                                     singleLine = true, enabled = !state.busy, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                                     isError = localError(state, AuthValidation.EMAIL) != null,
-                                    supportingText = { FieldError(localError(state, AuthValidation.EMAIL), "authEmailError") }, modifier = Modifier.fillMaxWidth().testTag("authEmail"))
+                                    supportingText = { FieldError(localError(state, AuthValidation.EMAIL), "authEmailError") }, colors = colorCampo(), modifier = Modifier.fillMaxWidth().testTag("authEmail"))
                                 if (state.step == AuthStep.LOGIN) {
                                     PasswordField(password, { password = it; onFieldEdited(AuthValidation.PASSWORD) }, R.string.auth_password, "authPassword", !state.busy, if (AuthValidation.PASSWORD in state.invalidFields) R.string.auth_password_required else null)
-                                    Button(onClick = { onLogin(email, password) }, enabled = !state.busy, modifier = Modifier.align(Alignment.CenterHorizontally).testTag("authSubmit")) { Text(stringResource(R.string.auth_login)) }
+                                    BotonApp(stringResource(R.string.auth_login), { onLogin(email, password) }, Modifier.fillMaxWidth().testTag("authSubmit"), enabled = !state.busy, cargando = state.busy)
                                     TextButton(onClick = onOpenSignup, enabled = !state.busy, modifier = Modifier.testTag("authSignup")) { Text(stringResource(R.string.auth_signup)) }
                                     TextButton(onClick = onRecover, enabled = !state.busy, modifier = Modifier.testTag("authRecover")) { Text(stringResource(R.string.auth_forgot)) }
-                                } else Button(onClick = { onRequest(email) }, enabled = !state.busy, modifier = Modifier.testTag("authSend")) { Text(stringResource(R.string.auth_send)) }
+                                } else BotonApp(stringResource(R.string.auth_send), { onRequest(email) }, Modifier.fillMaxWidth().testTag("authSend"), enabled = !state.busy, cargando = state.busy)
                             }
                             AuthStep.OTP -> {
                                 Text(stringResource(R.string.auth_otp_description))
                                 OutlinedTextField(code, { code = it; onFieldEdited(AuthValidation.CODIGO) }, label = { Text(stringResource(R.string.auth_code)) }, singleLine = true,
                                     enabled = !state.busy, isError = localError(state, AuthValidation.CODIGO) != null,
-                                    supportingText = { FieldError(localError(state, AuthValidation.CODIGO), "authCodeError") }, modifier = Modifier.fillMaxWidth().testTag("authCode"))
-                                Button(onClick = { onVerify(code) }, enabled = !state.busy, modifier = Modifier.testTag("authVerify")) { Text(stringResource(R.string.auth_verify)) }
+                                    supportingText = { FieldError(localError(state, AuthValidation.CODIGO), "authCodeError") }, colors = colorCampo(), modifier = Modifier.fillMaxWidth().testTag("authCode"))
+                                BotonApp(stringResource(R.string.auth_verify), { onVerify(code) }, Modifier.fillMaxWidth().testTag("authVerify"), enabled = !state.busy, cargando = state.busy)
                             }
                             AuthStep.NUEVA_PASSWORD -> {
                                 PasswordField(password, { password = it; onFieldEdited(AuthValidation.PASSWORD); onFieldEdited(AuthValidation.CONFIRMACION) }, R.string.auth_password, "authNewPassword", !state.busy, if (AuthValidation.PASSWORD in state.invalidFields) R.string.auth_password_required else null)
                                 PasswordField(confirm, { confirm = it; onFieldEdited(AuthValidation.CONFIRMACION) }, R.string.auth_confirm, "authConfirmation", !state.busy, if (AuthValidation.CONFIRMACION in state.invalidFields) R.string.auth_confirmation_invalid else null)
-                                Button(onClick = { onUpdate(password, confirm) }, enabled = !state.busy, modifier = Modifier.testTag("authUpdate")) { Text(stringResource(R.string.auth_update)) }
+                                BotonApp(stringResource(R.string.auth_update), { onUpdate(password, confirm) }, Modifier.fillMaxWidth().testTag("authUpdate"), enabled = !state.busy, cargando = state.busy)
                             }
                             AuthStep.COMPLETADA -> {
                                 Text(stringResource(R.string.auth_complete_description))
-                                Button(onClick = onBack, enabled = !state.busy, modifier = Modifier.testTag("authReturnLogin")) { Text(stringResource(R.string.auth_login_title)) }
+                                BotonApp(stringResource(R.string.auth_login_title), onBack, Modifier.fillMaxWidth().testTag("authReturnLogin"), enabled = !state.busy)
                             }
                         }
                         // Reutiliza las entradas en memoria del formulario, sin guardarlas en el ViewModel.
@@ -189,6 +203,8 @@ internal fun AuthScreen(
                 }
                 state.error?.let { Text(stringResource(errorMessage(it)), color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("authError")) }
                 if (state.logoutNoConfirmado) Text(stringResource(R.string.auth_logout_unconfirmed))
+                }
+                }
             }
         }
     }
@@ -197,7 +213,7 @@ internal fun AuthScreen(
 @Composable
 private fun PasswordField(value: String, change: (String) -> Unit, label: Int, tag: String, enabled: Boolean, error: Int? = null) {
     var visible by remember { mutableStateOf(false) }
-    OutlinedTextField(value, change, label = { Text(stringResource(label)) }, singleLine = true, enabled = enabled,
+    OutlinedTextField(value, change, label = { Text(stringResource(label)) }, singleLine = true, enabled = enabled, colors = colorCampo(),
         isError = error != null, supportingText = { error?.let { Text(stringResource(it), modifier = Modifier.testTag(tag + "Error")) } },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),

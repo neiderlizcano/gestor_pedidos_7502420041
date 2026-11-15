@@ -27,6 +27,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Settings
+import com.neiderlizcano.gestorpedidos.nativo.ui.components.BotonApp
+import com.neiderlizcano.gestorpedidos.nativo.ui.components.EstiloBoton
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
@@ -141,23 +147,18 @@ internal fun PanelUbicacion(
 ) {
     val enCurso = estado is EstadoUbicacion.ObteniendoPosicion || estado is EstadoUbicacion.ResolviendoDireccion
     Column(modifier.fillMaxWidth().testTag("ubicacionPanel"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = onUsar, enabled = !enCurso, modifier = Modifier.fillMaxWidth().testTag("ubicacionUsar")) {
-            Text(stringResource(R.string.ubicacion_usar))
-        }
+        BotonApp(stringResource(R.string.ubicacion_usar), onUsar, Modifier.fillMaxWidth().testTag("ubicacionUsar"), EstiloBoton.SECUNDARIO,
+            Icons.Filled.LocationOn, enabled = !enCurso, cargando = enCurso)
         if (enCurso) {
             LinearProgressIndicator(Modifier.fillMaxWidth().testTag("ubicacionProgreso"))
-            Button(onClick = onCancelar, modifier = Modifier.testTag("ubicacionCancelar")) { Text(stringResource(R.string.ubicacion_cancelar)) }
+            BotonApp(stringResource(R.string.ubicacion_cancelar), onCancelar, Modifier.fillMaxWidth().testTag("ubicacionCancelar"), EstiloBoton.SECUNDARIO, Icons.Filled.Close)
         }
         Mensajes(estado)
         if (estado is EstadoUbicacion.PermisoDenegado && estado.permanente) {
-            OutlinedButton(onClick = onAjustesAplicacion, modifier = Modifier.testTag("ubicacionAjustesApp")) {
-                Text(stringResource(R.string.ubicacion_abrir_ajustes))
-            }
+            BotonApp(stringResource(R.string.ubicacion_abrir_ajustes), onAjustesAplicacion, Modifier.fillMaxWidth().testTag("ubicacionAjustesApp"), EstiloBoton.SECUNDARIO, Icons.Filled.Settings)
         }
         if (estado is EstadoUbicacion.UbicacionDesactivada) {
-            OutlinedButton(onClick = onAjustesUbicacion, modifier = Modifier.testTag("ubicacionAjustesUbicacion")) {
-                Text(stringResource(R.string.ubicacion_abrir_ajustes_ubicacion))
-            }
+            BotonApp(stringResource(R.string.ubicacion_abrir_ajustes_ubicacion), onAjustesUbicacion, Modifier.fillMaxWidth().testTag("ubicacionAjustesUbicacion"), EstiloBoton.SECUNDARIO, Icons.Filled.Settings)
         }
     }
 }

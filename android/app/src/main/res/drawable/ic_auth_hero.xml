@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ilustración de la cabecera de acceso (derivada de la maqueta): pantalla con listado y etiqueta de entrega. Vector propio, sin licencias externas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="190dp" android:height="190dp" android:viewportWidth="200" android:viewportHeight="200">
+    <path android:fillColor="#1AFFFFFF" android:pathData="M100,26 A74,74 0 1,0 100,174 A74,74 0 1,0 100,26 Z" />
+    <path android:fillColor="#F2FFFFFF" android:pathData="M43,52 H133 A9,9 0 0 1 142,61 V117 A9,9 0 0 1 133,126 H43 A9,9 0 0 1 34,117 V61 A9,9 0 0 1 43,52 Z" />
+    <path android:fillColor="#DBEAFE" android:pathData="M49,62 H127 A5,5 0 0 1 132,67 V109 A5,5 0 0 1 127,114 H49 A5,5 0 0 1 44,109 V67 A5,5 0 0 1 49,62 Z" />
+    <path android:fillColor="#93C5FD" android:pathData="M56.5,74 H93.5 A2.5,2.5 0 0 1 96,76.5 V76.5 A2.5,2.5 0 0 1 93.5,79 H56.5 A2.5,2.5 0 0 1 54,76.5 V76.5 A2.5,2.5 0 0 1 56.5,74 Z" />
+    <path android:fillColor="#BFDBFE" android:pathData="M56.5,86 H111.5 A2.5,2.5 0 0 1 114,88.5 V88.5 A2.5,2.5 0 0 1 111.5,91 H56.5 A2.5,2.5 0 0 1 54,88.5 V88.5 A2.5,2.5 0 0 1 56.5,86 Z" />
+    <path android:fillColor="#BFDBFE" android:pathData="M56.5,98 H81.5 A2.5,2.5 0 0 1 84,100.5 V100.5 A2.5,2.5 0 0 1 81.5,103 H56.5 A2.5,2.5 0 0 1 54,100.5 V100.5 A2.5,2.5 0 0 1 56.5,98 Z" />
+    <path android:fillColor="#E2E8F0" android:pathData="M86,118 H100 V134 H86 Z" />
+    <path android:fillColor="#F1F5F9" android:pathData="M72,132 H114 A4,4 0 0 1 118,136 V136 A4,4 0 0 1 114,140 H72 A4,4 0 0 1 68,136 V136 A4,4 0 0 1 72,132 Z" />
+    <path android:fillColor="#FDE68A" android:pathData="M150,97 A15,15 0 1,0 150,127 A15,15 0 1,0 150,97 Z" />
+    <path android:fillColor="#F59E0B" android:pathData="M150,106 A6,6 0 1,0 150,118 A6,6 0 1,0 150,106 Z" />
+    <path android:fillColor="#FBBF24" android:pathData="M162,112 H188 V119 H181 V125 H172 V119 H162 Z" />
+</vector>
