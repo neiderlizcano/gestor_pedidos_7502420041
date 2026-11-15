@@ -27,3 +27,14 @@ La sesión usa AES-GCM/Keystore y almacenamiento excluido de respaldos. Un refre
 incierto no se reutiliza. Los 401 permiten como máximo repetir una lectura con credencial
 renovada; las escrituras nunca se repiten automáticamente. Spring conserva la autorización.
 El APK Debug se genera en app/build/outputs/apk/debug/ y se publica solo tras revisión separada.
+
+## Interfaz de autenticación
+La actividad principal abre AuthRoute: registro con confirmación de contraseña,
+login, restauración/reintento explícito, recuperación correo → OTP → nueva contraseña
+y logout. Registro sin sesión informa que puede requerirse confirmar el correo.
+El perfil Spring no se crea automáticamente. La entrada privada confirma la sesión;
+las pantallas CRUD se conectan en un cambio posterior, dentro de SessionContent.
+Las credenciales de formularios permanecen solo en memoria, se conservan durante rotación
+y se descartan al cerrar sesión o cambiar de flujo. No se incluyen datos demostrativos.
+La disponibilidad del correo, el backend y el aislamiento real requieren validación
+Android con cuentas autorizadas; las pruebas simuladas no certifican esos servicios.
