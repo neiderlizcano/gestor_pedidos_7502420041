@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_monogram">GP</string>
+    <string name="app_name">Gestor de Pedidos</string>
+    <string name="home_subtitle">Tus pedidos, en un solo lugar</string>
+    <string name="home_description">Organiza tus entregas y consulta su progreso.</string>
+    <string name="home_note">Actividad 3 · Universidad de Cartagena</string>
+    <string name="home_action">Conocer la aplicación</string>
+    <string name="home_details">Gestor de Pedidos reunirá tu perfil, tus pedidos y sus reportes.</string>
+    <string name="home_close">Volver al inicio</string>
+</resources>
