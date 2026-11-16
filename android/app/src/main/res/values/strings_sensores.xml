@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sensores_demo_label">Sensores (demostración)</string>
+    <string name="sensores_title">Sensores</string>
+    <string name="sensores_description">Observa el acelerómetro y el sensor de proximidad de tu dispositivo. Las lecturas solo se activan mientras esta pantalla está visible.</string>
+
+    <string name="sensores_acc_title">Acelerómetro</string>
+    <string name="sensores_acc_waiting">Esperando la primera lectura del acelerómetro…</string>
+    <string name="sensores_acc_unavailable">Este dispositivo no tiene acelerómetro. No se puede mostrar la aceleración.</string>
+    <string name="sensores_acc_invalid">El acelerómetro no entregó datos utilizables. Se mostrarán cuando vuelva a recibirlos.</string>
+    <string name="sensores_acc_axis">Eje %1$s: %2$s m/s²</string>
+    <string name="sensores_acc_magnitude">Magnitud total: %1$s m/s² (en reposo ≈ %2$s)</string>
+    <string name="sensores_acc_rest">Sin movimiento significativo</string>
+    <string name="sensores_acc_moving">¡Movimiento significativo detectado!</string>
+    <string name="sensores_acc_count">Movimientos detectados: %1$d</string>
+    <string name="sensores_acc_low_accuracy">La precisión del sensor es baja; las lecturas pueden variar.</string>
+
+    <string name="sensores_prox_title">Proximidad</string>
+    <string name="sensores_prox_waiting">Esperando una lectura del sensor de proximidad… Acerca o aleja la mano del dispositivo.</string>
+    <string name="sensores_prox_unavailable">Este dispositivo no tiene sensor de proximidad.</string>
+    <string name="sensores_prox_invalid">El sensor de proximidad no entregó datos utilizables.</string>
+    <string name="sensores_prox_near">Hay un objeto cerca</string>
+    <string name="sensores_prox_far">No hay objetos cerca</string>
+    <string name="sensores_prox_distance">Distancia medida: %1$s cm</string>
+    <string name="sensores_prox_binary">Este sensor solo distingue cerca y lejos (alcance máximo %1$s cm).</string>
+    <string name="sensores_prox_range">Alcance máximo del sensor: %1$s cm.</string>
+
+    <string name="sensores_error_register">No se pudo activar el sensor. Otra aplicación o el sistema pueden estar limitándolo.</string>
+    <string name="sensores_error_unexpected">Ocurrió un error inesperado al leer el sensor.</string>
+    <string name="sensores_retry">Reintentar</string>
+</resources>
