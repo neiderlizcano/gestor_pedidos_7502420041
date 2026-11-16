@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reportes_title">Reportes</string>
+    <string name="reportes_menu_description">Consulta tus pedidos y perfiles con filtros. Solo ves información de tu cuenta.</string>
+    <string name="reportes_menu_pedidos_estado">Pedidos por estado y fechas</string>
+    <string name="reportes_menu_pedidos_ubicacion">Pedidos por ubicación</string>
+    <string name="reportes_menu_usuarios_nombre">Perfiles por nombre</string>
+    <string name="reportes_menu_usuarios_correo">Perfiles por correo</string>
+    <string name="reportes_back">Volver a reportes</string>
+
+    <string name="reportes_search">Consultar</string>
+    <string name="reportes_clear">Limpiar</string>
+    <string name="reportes_retry">Reintentar</string>
+    <string name="reportes_loading">Consultando…</string>
+    <string name="reportes_initial_hint">Define los filtros y pulsa Consultar.</string>
+    <string name="reportes_empty">No hay resultados para estos filtros.</string>
+    <string name="reportes_previous">Anterior</string>
+    <string name="reportes_next">Siguiente</string>
+    <string name="reportes_page">Página %1$d</string>
+    <string name="reportes_page_size">Filas por página</string>
+    <string name="reportes_page_size_option">%1$d</string>
+
+    <string name="reportes_field_estado">Estado (opcional)</string>
+    <string name="reportes_field_desde">Desde (AAAA-MM-DD)</string>
+    <string name="reportes_field_hasta">Hasta (AAAA-MM-DD)</string>
+    <string name="reportes_field_fecha_base">Fecha a filtrar</string>
+    <string name="reportes_base_fecha">Pedido</string>
+    <string name="reportes_base_envio">Envío</string>
+    <string name="reportes_base_entrega">Entrega</string>
+    <string name="reportes_field_pais">País</string>
+    <string name="reportes_field_departamento">Departamento</string>
+    <string name="reportes_field_ciudad">Ciudad</string>
+    <string name="reportes_field_campo">Buscar por</string>
+    <string name="reportes_campo_nombre">Nombre</string>
+    <string name="reportes_campo_username">Username</string>
+    <string name="reportes_field_coincidencia">Coincidencia</string>
+    <string name="reportes_coincidencia_exacta">Exacta</string>
+    <string name="reportes_coincidencia_prefijo">Empieza por</string>
+    <string name="reportes_field_termino">Término de búsqueda</string>
+    <string name="reportes_field_correo">Correo electrónico</string>
+
+    <string name="reportes_problem_fecha">Usa una fecha real con el formato AAAA-MM-DD.</string>
+    <string name="reportes_problem_rango">La fecha inicial no puede ser posterior a la final.</string>
+    <string name="reportes_problem_ubicacion">Indica al menos un país, departamento o ciudad.</string>
+    <string name="reportes_problem_obligatorio">Este campo es obligatorio.</string>
+    <string name="reportes_problem_largo">El texto es demasiado largo.</string>
+    <string name="reportes_problem_correo">Escribe un correo válido.</string>
+
+    <string name="reportes_error_invalid">El servidor rechazó los filtros. Revísalos e inténtalo de nuevo.</string>
+    <string name="reportes_error_session">Tu sesión no es válida para esta consulta. Si persiste, vuelve a iniciar sesión.</string>
+    <string name="reportes_error_forbidden">No tienes permiso para consultar este reporte.</string>
+    <string name="reportes_error_unavailable">El servicio no está disponible en este momento.</string>
+    <string name="reportes_error_connection">No hay conexión con el servidor. Comprueba tu red.</string>
+    <string name="reportes_error_response">El servidor devolvió una respuesta que no se pudo interpretar.</string>
+    <string name="reportes_error_unknown">No se pudo completar la consulta.</string>
+
+    <string name="reportes_pedido_title">Pedido #%1$s</string>
+    <string name="reportes_pedido_parties">Cliente: %1$s · Proveedor: %2$s</string>
+    <string name="reportes_pedido_amounts">Estado: %1$s · Valor: %2$s · Propina: %3$s</string>
+    <string name="reportes_pedido_dates">Fecha: %1$s · Envío: %2$s · Entrega: %3$s</string>
+    <string name="reportes_pedido_place">%1$s, %2$s, %3$s · %4$s</string>
+    <string name="reportes_perfil_username">@%1$s</string>
+</resources>
