@@ -10,7 +10,7 @@ import kotlinx.coroutines.*
 import java.io.Closeable
 
 // Una instancia por proceso, creada por el propietario de la aplicación cuando haya configuración aprobada.
-class AndroidAuthModule(context: Context, authBaseUrl: String, publicKey: String, springBaseUrl: String = "") : Closeable, AuthRuntime, PedidosRuntime, UsuariosRuntime {
+class AndroidAuthModule(context: Context, authBaseUrl: String, publicKey: String, springBaseUrl: String = "") : Closeable, AuthRuntime, PedidosRuntime, UsuariosRuntime, ReportesRuntime {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val remote = AuthRemoteRest.create(authBaseUrl, publicKey)
     private val sessions = CoordinatedSessionManager(remote, androidSessionStore(context), scope)
@@ -20,6 +20,7 @@ class AndroidAuthModule(context: Context, authBaseUrl: String, publicKey: String
     }
     override val pedidosRepository by lazy { spring?.pedidosRepository ?: UnavailablePedidosRepository }
     override val usuariosRepository by lazy { spring?.usuariosRepository ?: UnavailableUsuariosRepository }
+    override val reportesRepository by lazy { spring?.reportesRepository ?: UnavailableReportesRepository }
     val accessTokenProvider: AccessTokenProvider = SessionAccessTokenProvider(sessions)
     override suspend fun inicializar(): ResultadoAuth<Unit> = sessions.inicializar()
     fun backend(springBaseUrl: String): AppContainer = AppContainer(springBaseUrl, accessTokenProvider)

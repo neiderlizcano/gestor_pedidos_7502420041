@@ -41,10 +41,14 @@ import com.neiderlizcano.gestorpedidos.nativo.ui.components.EstiloBoton
 import com.neiderlizcano.gestorpedidos.nativo.domain.usuarios.UsuariosRepository
 import com.neiderlizcano.gestorpedidos.nativo.ui.pedidos.PedidosRoute
 import com.neiderlizcano.gestorpedidos.nativo.ui.perfil.PerfilRoute
+import com.neiderlizcano.gestorpedidos.nativo.domain.reportes.ReportesRepository
+import com.neiderlizcano.gestorpedidos.nativo.di.UnavailableReportesRepository
+import com.neiderlizcano.gestorpedidos.nativo.ui.reportes.ReportesRoute
+import com.neiderlizcano.gestorpedidos.nativo.sensores.SensoresRoute
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-internal enum class Destino { MENU, PEDIDOS, PERFIL }
+internal enum class Destino { MENU, PEDIDOS, PERFIL, REPORTES, SENSORES }
 
 internal class SessionNavigationViewModel : ViewModel() {
     private val destino = MutableStateFlow(Destino.MENU)
@@ -61,13 +65,12 @@ private val AzulOscuro = Color(0xFF1E5B92)
 private val AzulPrincipal = Color(0xFF2563EB)
 
 /**
- * Menú central tras iniciar sesión y contenedor de las pantallas de la sesión. Reportes y Sensores se muestran
- * como «Próximamente» y no navegan a ningún lado.
+ * Menú central de la sesión: CRUD, reportes propios y sensores comparten el propietario de ViewModels autenticado.
  */
 @Composable
 internal fun SessionDashboard(
     pedidos: PedidosRepository, usuarios: UsuariosRepository, onLogout: () -> Unit, onAccountDeleted: () -> Unit,
-    logoutEnabled: Boolean = true
+    logoutEnabled: Boolean = true, reportes: ReportesRepository = UnavailableReportesRepository
 ) {
     val navigation: SessionNavigationViewModel = viewModel()
     val destino by navigation.actual.collectAsStateWithLifecycle()
@@ -76,12 +79,23 @@ internal fun SessionDashboard(
     when (destino) {
         Destino.MENU -> MenuPrincipal(
             onPedidos = { navigation.ir(Destino.PEDIDOS) }, onNuevo = navigation::abrirNuevoPedido,
-            onPerfil = { navigation.ir(Destino.PERFIL) }, onLogout = onLogout, logoutEnabled = logoutEnabled)
+            onPerfil = { navigation.ir(Destino.PERFIL) }, onReportes = { navigation.ir(Destino.REPORTES) },
+            onSensores = { navigation.ir(Destino.SENSORES) }, onLogout = onLogout, logoutEnabled = logoutEnabled)
         else -> Column(Modifier.fillMaxSize()) {
-            BarraSuperior(titulo = stringResource(if (destino == Destino.PERFIL) R.string.menu_perfil else R.string.menu_pedidos),
+            BarraSuperior(titulo = stringResource(when (destino) {
+                Destino.PERFIL -> R.string.menu_perfil
+                Destino.REPORTES -> R.string.menu_reportes
+                Destino.SENSORES -> R.string.menu_sensores
+                else -> R.string.menu_pedidos
+            }),
                 onVolver = { navigation.ir(Destino.MENU) })
             Box(Modifier.weight(1f)) {
-                if (destino == Destino.PERFIL) PerfilRoute(usuarios, onAccountDeleted) else PedidosRoute(pedidos, nuevoPendiente, navigation::nuevoAtendido)
+                when (destino) {
+                    Destino.PERFIL -> PerfilRoute(usuarios, onAccountDeleted)
+                    Destino.REPORTES -> ReportesRoute(reportes)
+                    Destino.SENSORES -> SensoresRoute()
+                    else -> PedidosRoute(pedidos, nuevoPendiente, navigation::nuevoAtendido)
+                }
             }
         }
     }
@@ -100,7 +114,7 @@ private fun BarraSuperior(titulo: String, onVolver: () -> Unit) {
 }
 
 @Composable
-private fun MenuPrincipal(onPedidos: () -> Unit, onNuevo: () -> Unit, onPerfil: () -> Unit, onLogout: () -> Unit, logoutEnabled: Boolean) {
+private fun MenuPrincipal(onPedidos: () -> Unit, onNuevo: () -> Unit, onPerfil: () -> Unit, onReportes: () -> Unit, onSensores: () -> Unit, onLogout: () -> Unit, logoutEnabled: Boolean) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("menuPrincipal")) {
         // Cabecera con degradado azul, como en la maqueta.
         Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(AzulOscuro, AzulPrincipal)),
@@ -116,8 +130,8 @@ private fun MenuPrincipal(onPedidos: () -> Unit, onNuevo: () -> Unit, onPerfil: 
                 TarjetaMenu(R.string.menu_nuevo, R.string.menu_nuevo_desc, Icons.Filled.Add, "navNuevo", Modifier.weight(1f).fillMaxHeight(), orden = 1, onClick = onNuevo)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max)) {
-                TarjetaMenu(R.string.menu_reportes, R.string.menu_pending, Icons.Filled.Info, "navReportes", Modifier.weight(1f).fillMaxHeight(), orden = 2, enabled = false)
-                TarjetaMenu(R.string.menu_sensores, R.string.menu_pending, Icons.Filled.Settings, "navSensores", Modifier.weight(1f).fillMaxHeight(), orden = 3, enabled = false)
+                TarjetaMenu(R.string.menu_reportes, R.string.f4_reportes_desc, Icons.Filled.Info, "navReportes", Modifier.weight(1f).fillMaxHeight(), orden = 2, onClick = onReportes)
+                TarjetaMenu(R.string.menu_sensores, R.string.f4_sensores_desc, Icons.Filled.Settings, "navSensores", Modifier.weight(1f).fillMaxHeight(), orden = 3, onClick = onSensores)
             }
             TarjetaMenu(R.string.menu_perfil, R.string.menu_perfil_desc, Icons.Filled.Person, "navPerfil", Modifier.fillMaxWidth(), orden = 4, onClick = onPerfil)
             BotonApp(stringResource(R.string.auth_logout), onLogout, Modifier.fillMaxWidth().testTag("authLogout"), EstiloBoton.SECUNDARIO,

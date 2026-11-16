@@ -30,6 +30,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.neiderlizcano.gestorpedidos.nativo.R
+import com.neiderlizcano.gestorpedidos.nativo.di.ReportesRuntime
+import com.neiderlizcano.gestorpedidos.nativo.di.UnavailableReportesRepository
+import com.neiderlizcano.gestorpedidos.nativo.domain.reportes.ReportesRepository
 import com.neiderlizcano.gestorpedidos.nativo.di.AuthRuntime
 import com.neiderlizcano.gestorpedidos.nativo.domain.auth.ErrorAuth
 import com.neiderlizcano.gestorpedidos.nativo.di.UsuariosRuntime
@@ -66,7 +69,7 @@ fun AuthRoute(runtime: AuthRuntime) {
     AuthScreen(state, vm::login, vm::recuperar, vm::solicitar, vm::verificar,
         vm::actualizar, vm::volverLogin, vm::reintentar, vm::logout, vm.privateStores,
         (runtime as? PedidosRuntime)?.pedidosRepository ?: UnavailablePedidosRepository,
-        (runtime as? UsuariosRuntime)?.usuariosRepository ?: UnavailableUsuariosRepository, vm::cuentaEliminada, vm::abrirRegistro, vm::registrar, vm::corregirCampo, vm.formMemory)
+        (runtime as? UsuariosRuntime)?.usuariosRepository ?: UnavailableUsuariosRepository, vm::cuentaEliminada, vm::abrirRegistro, vm::registrar, vm::corregirCampo, vm.formMemory, (runtime as? ReportesRuntime)?.reportesRepository ?: UnavailableReportesRepository)
 }
 
 @Composable
@@ -87,7 +90,8 @@ internal fun AuthScreen(
     onOpenSignup: () -> Unit = {},
     onSignup: (String, String, String) -> Unit = { _, _, _ -> },
     onFieldEdited: (AuthValidation) -> Unit = {},
-    forms: AuthFormMemory? = null
+    forms: AuthFormMemory? = null,
+    reportesRepository: ReportesRepository = UnavailableReportesRepository
 ) {
     BackHandler(enabled = state.destination == AuthDestination.FORMULARIO && state.step != AuthStep.LOGIN) {
         if (!state.busy) onBack()
@@ -101,7 +105,7 @@ internal fun AuthScreen(
             // Solo barras del sistema y recorte (nunca el teclado): el menú y las pantallas de la sesión no deben crecer con el IME.
             val user = (state.sesion as com.neiderlizcano.gestorpedidos.nativo.domain.auth.EstadoSesion.Autenticada).usuarioId
             SessionContent(user, state.sessionVersion, retained) {
-                SessionDashboard(pedidosRepository, usuariosRepository, onLogout, onAccountDeleted, logoutEnabled = !state.busy)
+                SessionDashboard(pedidosRepository, usuariosRepository, onLogout, onAccountDeleted, logoutEnabled = !state.busy, reportes = reportesRepository)
             }
         } else {
             // Cabecera con degradado e ilustración y tarjeta blanca flotante con el formulario, como en la maqueta.

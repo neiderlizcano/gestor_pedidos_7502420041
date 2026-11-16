@@ -31,12 +31,12 @@ class MenuPrincipalTest {
         }
     }
 
-    @Test fun elMenuMuestraLasOpcionesYLosModulosPendientesNoNavegan() {
+    @Test fun elMenuMuestraLasOpcionesYLosModulosF4EstanHabilitados() {
         install(PedidosTestRuntime())
         compose.onNodeWithTag("menuPrincipal").assertIsDisplayed()
         for (tag in listOf("navPedidos", "navNuevo", "navPerfil", "authLogout")) compose.onNodeWithTag(tag).assertIsDisplayed().assertIsEnabled()
-        compose.onNodeWithTag("navReportes").assertIsNotEnabled(); compose.onNodeWithTag("navSensores").assertIsNotEnabled()
-        compose.onAllNodesWithText("Próximamente").assertCountEquals(2)
+        compose.onNodeWithTag("navReportes").assertIsEnabled(); compose.onNodeWithTag("navSensores").assertIsEnabled()
+        compose.onAllNodesWithText("Próximamente").assertCountEquals(0)
         // Sin encabezados duplicados: no hay barra de regreso en el menú.
         compose.onAllNodesWithTag("navInicio").assertCountEquals(0)
     }

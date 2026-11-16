@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="f4_reportes_desc">Consulta tus pedidos y perfil mediante cuatro reportes.</string>
+    <string name="f4_sensores_desc">Observa el acelerómetro y la proximidad del dispositivo.</string>
+</resources>
