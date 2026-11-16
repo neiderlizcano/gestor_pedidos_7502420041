@@ -2,13 +2,18 @@ package com.neiderlizcano.gestorpedidos.nativo.ubicacion
 
 // Puertos del componente: separan la lógica (probable en la JVM) de los servicios de Android.
 
-/** Posición puntual. No se guarda, no se registra y no sale del dispositivo: solo alimenta la geocodificación. */
+/**
+ * Posición puntual: este componente no la persiste ni realiza seguimiento continuo.
+ * El geocodificador del sistema puede consultar un servicio externo para resolver la dirección.
+ */
 data class Posicion(val latitud: Double, val longitud: Double, val precisionMetros: Float? = null)
 
 sealed interface ResultadoPosicion {
     data class Exito(val posicion: Posicion) : ResultadoPosicion
     /** El interruptor de ubicación del sistema (GPS) está apagado. */
     data object UbicacionDesactivada : ResultadoPosicion
+    /** El permiso falta o se revocó mientras se obtenía la posición. */
+    data object PermisoDenegado : ResultadoPosicion
     /** El dispositivo no tiene un proveedor de ubicación utilizable con los permisos concedidos. */
     data object SinProveedor : ResultadoPosicion
     data object TiempoAgotado : ResultadoPosicion
@@ -23,7 +28,8 @@ interface ProveedorPosicion {
 sealed interface ResultadoGeocodificacion {
     data class Exito(val direccion: DireccionCruda) : ResultadoGeocodificacion
     data object SinResultados : ResultadoGeocodificacion
-    /** Falló la consulta de red al servicio de direcciones (sin Internet o servicio inaccesible). */
+    data object TiempoAgotado : ResultadoGeocodificacion
+    /** Ausencia de conexión acreditada por el proveedor; un error genérico del geocodificador no basta. */
     data object SinConexion : ResultadoGeocodificacion
     /** El dispositivo no incluye un servicio de geocodificación. */
     data object ServicioNoDisponible : ResultadoGeocodificacion

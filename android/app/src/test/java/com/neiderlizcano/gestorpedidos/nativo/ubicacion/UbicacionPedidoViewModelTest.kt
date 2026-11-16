@@ -43,6 +43,20 @@ private class GeocodificadorFalso(
 class UbicacionPedidoViewModelTest {
     private fun TestScope.vm(p: ProveedorFalso, g: GeocodificadorFalso) = UbicacionPedidoViewModel(p, g, backgroundScope)
 
+    @Test fun cancelarYReintentarSinEsperarNoDejaQueElIntentoAnteriorBorreElNuevoEstado() = runTest {
+        val g = GeocodificadorFalso().apply { compuerta = CompletableDeferred() }
+        val vm = vm(ProveedorFalso(), g)
+        vm.iniciar(false); runCurrent()
+        assertEquals(EstadoUbicacion.ResolviendoDireccion, vm.uiState.value)
+        vm.cancelar(); vm.iniciar(false); runCurrent()
+        assertTrue(vm.ocupado)
+        assertEquals(EstadoUbicacion.ResolviendoDireccion, vm.uiState.value)
+        g.compuerta!!.complete(Unit); runCurrent()
+        assertTrue(vm.uiState.value is EstadoUbicacion.Completado)
+        vm.sugerencias.first()
+        assertNull(withTimeoutOrNull(1_000) { vm.sugerencias.first() })
+    }
+
     @Test fun crearElViewModelNoPideNadaNiUsaServicios() = runTest {
         val p = ProveedorFalso(); val g = GeocodificadorFalso(); val vm = vm(p, g)
         runCurrent()
@@ -93,6 +107,7 @@ class UbicacionPedidoViewModelTest {
     @Test fun cadaFalloDeUbicacionTieneSuEstado() = runTest {
         val casos = mapOf(
             ResultadoPosicion.UbicacionDesactivada to EstadoUbicacion.UbicacionDesactivada,
+            ResultadoPosicion.PermisoDenegado to EstadoUbicacion.PermisoDenegado(false),
             ResultadoPosicion.SinProveedor to EstadoUbicacion.Error(ErrorUbicacion.SIN_PROVEEDOR),
             ResultadoPosicion.TiempoAgotado to EstadoUbicacion.Error(ErrorUbicacion.TIEMPO_AGOTADO),
             ResultadoPosicion.Fallo to EstadoUbicacion.Error(ErrorUbicacion.FALLO)
@@ -108,6 +123,7 @@ class UbicacionPedidoViewModelTest {
     @Test fun cadaFalloDeGeocodificacionTieneSuEstado() = runTest {
         val casos = mapOf(
             ResultadoGeocodificacion.SinResultados to ErrorUbicacion.SIN_RESULTADOS,
+            ResultadoGeocodificacion.TiempoAgotado to ErrorUbicacion.TIEMPO_AGOTADO,
             ResultadoGeocodificacion.SinConexion to ErrorUbicacion.SIN_CONEXION,
             ResultadoGeocodificacion.ServicioNoDisponible to ErrorUbicacion.SERVICIO_NO_DISPONIBLE,
             ResultadoGeocodificacion.Fallo to ErrorUbicacion.FALLO

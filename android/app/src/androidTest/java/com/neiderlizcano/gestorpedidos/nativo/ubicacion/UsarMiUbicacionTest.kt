@@ -131,6 +131,31 @@ class UsarMiUbicacionTest {
         }
     }
 
+    @Test fun permisoRevocadoDuranteLaConsultaNoSeConfundeConProveedorAusente() {
+        val e = Escenario(proveedor = ProveedorUi(ResultadoPosicion.PermisoDenegado), permisos = PermisosUi(fino = true))
+        mostrar(e); compose.onNodeWithTag("ubicacionUsar").performClick()
+        esperarTexto(texto(R.string.ubicacion_permiso_denegado))
+        assertTrue(e.recibidas.isEmpty()); assertEquals(0, e.geocodificador.llamadas)
+    }
+
+    @Test fun timeoutDeGeocodificacionMuestraReintentoSinModificarLosCampos() {
+        val e = Escenario(geocodificador = GeocodificadorUi(ResultadoGeocodificacion.TiempoAgotado), permisos = PermisosUi(fino = true))
+        mostrar(e, conFormulario = true); compose.onNodeWithTag("ubicacionUsar").performClick()
+        esperarTexto(texto(R.string.ubicacion_error_tiempo))
+        compose.onNodeWithTag("fCiudad").assertTextContains("Mi ciudad escrita")
+        assertTrue(e.recibidas.isEmpty())
+        e.geocodificador.resultado = ResultadoGeocodificacion.Exito(DireccionCruda(pais = "Colombia"))
+        compose.onNodeWithTag("ubicacionUsar").performClick()
+        esperar("ubicacionFaltantes"); compose.onNodeWithTag("fPais").assertTextContains("Colombia")
+    }
+
+    @Test fun falloGenericoNoSePresentaComoFaltaDeInternet() {
+        val e = Escenario(geocodificador = GeocodificadorUi(ResultadoGeocodificacion.Fallo), permisos = PermisosUi(fino = true))
+        mostrar(e); compose.onNodeWithTag("ubicacionUsar").performClick()
+        esperarTexto(texto(R.string.ubicacion_error_fallo))
+        assertEquals(0, compose.onAllNodesWithText(texto(R.string.ubicacion_error_conexion)).fetchSemanticsNodes().size)
+    }
+
     @Test fun alMostrarseNoPideNiUsaNadaHastaQueElUsuarioPulsa() {
         val e = Escenario(); mostrar(e)
         compose.onNodeWithTag("ubicacionUsar").assertIsDisplayed()

@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 
 /** Motivos por los que no se pudo completar la dirección. */
 enum class ErrorUbicacion { SIN_PROVEEDOR, TIEMPO_AGOTADO, SIN_CONEXION, SERVICIO_NO_DISPONIBLE, SIN_RESULTADOS, FALLO }
@@ -50,6 +52,7 @@ class UbicacionPedidoViewModel(
     val sugerencias: Flow<DireccionSugerida> = salida.receiveAsFlow()
 
     private var trabajo: Job? = null
+    private var generacion = 0L
 
     /** Verdadero mientras hay una operación en curso (se usa para ignorar pulsaciones repetidas). */
     val ocupado: Boolean
@@ -67,19 +70,26 @@ class UbicacionPedidoViewModel(
     /** Inicia la búsqueda con el permiso ya concedido. `aproximado`: solo se concedió ubicación aproximada. */
     fun iniciar(aproximado: Boolean) {
         if (trabajo?.isActive == true) return
+        val intento = ++generacion
         trabajo = scope.launch {
             try {
                 estado.value = EstadoUbicacion.ObteniendoPosicion
-                val posicion = when (val r = proveedor.obtenerActual(precisa = !aproximado)) {
+                val r = proveedor.obtenerActual(precisa = !aproximado)
+                currentCoroutineContext().ensureActive()
+                val posicion = when (r) {
                     is ResultadoPosicion.Exito -> r.posicion
                     ResultadoPosicion.UbicacionDesactivada -> { estado.value = EstadoUbicacion.UbicacionDesactivada; return@launch }
+                    ResultadoPosicion.PermisoDenegado -> { estado.value = EstadoUbicacion.PermisoDenegado(false); return@launch }
                     ResultadoPosicion.SinProveedor -> { fallo(ErrorUbicacion.SIN_PROVEEDOR); return@launch }
                     ResultadoPosicion.TiempoAgotado -> { fallo(ErrorUbicacion.TIEMPO_AGOTADO); return@launch }
                     ResultadoPosicion.Fallo -> { fallo(ErrorUbicacion.FALLO); return@launch }
                 }
                 estado.value = EstadoUbicacion.ResolviendoDireccion
-                val cruda = when (val g = geocodificador.resolver(posicion)) {
+                val g = geocodificador.resolver(posicion)
+                currentCoroutineContext().ensureActive()
+                val cruda = when (g) {
                     is ResultadoGeocodificacion.Exito -> g.direccion
+                    ResultadoGeocodificacion.TiempoAgotado -> { fallo(ErrorUbicacion.TIEMPO_AGOTADO); return@launch }
                     ResultadoGeocodificacion.SinResultados -> { fallo(ErrorUbicacion.SIN_RESULTADOS); return@launch }
                     ResultadoGeocodificacion.SinConexion -> { fallo(ErrorUbicacion.SIN_CONEXION); return@launch }
                     ResultadoGeocodificacion.ServicioNoDisponible -> { fallo(ErrorUbicacion.SERVICIO_NO_DISPONIBLE); return@launch }
@@ -91,18 +101,20 @@ class UbicacionPedidoViewModel(
                 estado.value = EstadoUbicacion.Completado(sugerida.faltantes, sugerida.avisos)
             } catch (cancelada: CancellationException) {
                 // La cancelación (botón Cancelar o salida de la pantalla) no es un error: no se entrega nada.
-                if (estado.value is EstadoUbicacion.ObteniendoPosicion || estado.value is EstadoUbicacion.ResolviendoDireccion) {
+                if (intento == generacion &&
+                    (estado.value is EstadoUbicacion.ObteniendoPosicion || estado.value is EstadoUbicacion.ResolviendoDireccion)) {
                     estado.value = EstadoUbicacion.Inactivo
                 }
                 throw cancelada
             } catch (_: RuntimeException) {
-                fallo(ErrorUbicacion.FALLO)
+                if (intento == generacion) fallo(ErrorUbicacion.FALLO)
             }
         }
     }
 
     /** Cancela la búsqueda en curso sin modificar el formulario. */
     fun cancelar() {
+        generacion++
         trabajo?.cancel()
         trabajo = null
         if (estado.value !is EstadoUbicacion.Completado) estado.value = EstadoUbicacion.Inactivo
@@ -113,6 +125,7 @@ class UbicacionPedidoViewModel(
      * nunca se aplique después a otro formulario.
      */
     fun descartar() {
+        generacion++
         trabajo?.cancel()
         trabajo = null
         while (salida.tryReceive().isSuccess) { /* vaciar */ }

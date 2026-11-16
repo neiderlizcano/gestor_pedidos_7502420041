@@ -26,7 +26,7 @@
     <string name="ubicacion_aviso_aproximada">Solo concediste ubicación aproximada; es posible que falten la calle y el número.</string>
 
     <string name="ubicacion_error_proveedor">No se pudo usar un proveedor de ubicación. Comprueba el GPS o la ubicación aproximada.</string>
-    <string name="ubicacion_error_tiempo">No se obtuvo la posición a tiempo. Ve a un lugar abierto e inténtalo de nuevo.</string>
+    <string name="ubicacion_error_tiempo">La consulta de ubicación o dirección tardó demasiado. Inténtalo de nuevo o escribe la dirección manualmente.</string>
     <string name="ubicacion_error_conexion">No se pudo consultar el servicio de direcciones. Comprueba tu conexión a Internet.</string>
     <string name="ubicacion_error_servicio">Este dispositivo no incluye un servicio de direcciones. Escribe la dirección manualmente.</string>
     <string name="ubicacion_error_sin_resultados">No se encontró ninguna dirección para tu posición. Escríbela manualmente.</string>

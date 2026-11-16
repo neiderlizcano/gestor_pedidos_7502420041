@@ -53,9 +53,9 @@ internal fun PedidoDateField(value: String, title: Int, tag: String, enabled: Bo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun PedidoEstadoField(value: String, enabled: Boolean, error: Int?, onChange: (String) -> Unit) {
+internal fun PedidoEstadoField(value: String, enabled: Boolean, error: Int?, estadoOriginal: String? = null, onChange: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    // Lista cerrada: no se escribe a mano, por lo que el teclado no aparece ni tapa el campo.
+    // El selector mantiene el catálogo de creación e incluye el estado existente cuando es distinto.
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { if (enabled) expanded = !expanded }) {
         OutlinedTextField(value = value.ifEmpty { ESTADO_PLACEHOLDER }, onValueChange = {}, readOnly = true, singleLine = true, enabled = enabled,
             label = { Text(stringResource(R.string.pedido_estado)) }, isError = error != null, colors = colorCampo(),
@@ -64,7 +64,7 @@ internal fun PedidoEstadoField(value: String, enabled: Boolean, error: Int?, onC
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = enabled).fillMaxWidth().testTag("pedidoField_ESTADO"))
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.testTag("pedidoEstadoMenu")) {
-            OPCIONES_ESTADO.forEach { opcion ->
+            opcionesEstado(estadoOriginal).forEach { opcion ->
                 // «Seleccione un estado» limpia la elección y sigue siendo inválido para guardar.
                 DropdownMenuItem(text = { Text(opcion) }, onClick = { onChange(if (opcion == ESTADO_PLACEHOLDER) "" else opcion); expanded = false })
             }

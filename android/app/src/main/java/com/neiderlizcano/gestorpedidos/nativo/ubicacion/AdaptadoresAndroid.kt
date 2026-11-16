@@ -11,13 +11,13 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.core.os.CancellationSignal
 import androidx.core.location.LocationManagerCompat
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import java.io.IOException
 import java.util.Locale
+import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 
 // Adaptadores con servicios del sistema, sin Google Play Services ni servicios de pago:
@@ -53,9 +53,13 @@ class ProveedorPosicionAndroid(
         ContextCompat.checkSelfPermission(app, permiso) == PackageManager.PERMISSION_GRANTED
 
     override suspend fun obtenerActual(precisa: Boolean): ResultadoPosicion {
+        return try { obtenerConPermiso(precisa) } catch (_: SecurityException) { ResultadoPosicion.PermisoDenegado }
+    }
+
+    private suspend fun obtenerConPermiso(precisa: Boolean): ResultadoPosicion {
         val gestor = app.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return ResultadoPosicion.SinProveedor
         val fino = concedido(Manifest.permission.ACCESS_FINE_LOCATION)
-        if (!fino && !concedido(Manifest.permission.ACCESS_COARSE_LOCATION)) return ResultadoPosicion.SinProveedor
+        if (!fino && !concedido(Manifest.permission.ACCESS_COARSE_LOCATION)) return ResultadoPosicion.PermisoDenegado
         if (!LocationManagerCompat.isLocationEnabled(gestor)) return ResultadoPosicion.UbicacionDesactivada
         val proveedores = proveedoresEnOrden(gestor.getProviders(true).toSet(), precisa && fino, Build.VERSION.SDK_INT)
         if (proveedores.isEmpty()) return ResultadoPosicion.SinProveedor
@@ -75,7 +79,7 @@ class ProveedorPosicionAndroid(
             ResultadoPosicion.TiempoAgotado
         } catch (_: SecurityException) {
             // El permiso pudo revocarse mientras se esperaba.
-            ResultadoPosicion.SinProveedor
+            ResultadoPosicion.PermisoDenegado
         }
     }
 
@@ -92,41 +96,46 @@ class ProveedorPosicionAndroid(
 
 class GeocodificadorAndroid(
     context: Context,
-    private val idioma: Locale = Locale("es", "CO")
+    private val idioma: Locale = Locale("es", "CO"),
+    private val tiempoLimiteMs: Long = 15_000
 ) : GeocodificadorInverso {
     private val app = context.applicationContext
 
-    override suspend fun resolver(posicion: Posicion): ResultadoGeocodificacion {
-        if (!Geocoder.isPresent()) return ResultadoGeocodificacion.ServicioNoDisponible
-        val geocodificador = Geocoder(app, idioma)
-        return try {
-            val direcciones = buscar(geocodificador, posicion)
-            val primera = direcciones.firstOrNull() ?: return ResultadoGeocodificacion.SinResultados
-            ResultadoGeocodificacion.Exito(primera.aCruda())
-        } catch (_: IOException) {
-            // Sin Internet o sin acceso al servicio de direcciones del sistema.
-            ResultadoGeocodificacion.SinConexion
-        } catch (_: IllegalArgumentException) {
-            ResultadoGeocodificacion.Fallo
-        }
-    }
-
-    private suspend fun buscar(geocodificador: Geocoder, posicion: Posicion): List<Address> =
-        if (Build.VERSION.SDK_INT >= 33) {
-            suspendCancellableCoroutine { continuacion ->
+    override suspend fun resolver(posicion: Posicion): ResultadoGeocodificacion =
+        esperarGeocodificacion(tiempoLimiteMs) { responder ->
+            if (!Geocoder.isPresent()) {
+                responder(ResultadoGeocodificacion.ServicioNoDisponible)
+                return@esperarGeocodificacion {}
+            }
+            val geocodificador = Geocoder(app, idioma)
+            if (Build.VERSION.SDK_INT >= 33) {
                 geocodificador.getFromLocation(posicion.latitud, posicion.longitud, 1, object : Geocoder.GeocodeListener {
-                    override fun onGeocode(addresses: MutableList<Address>) { if (continuacion.isActive) continuacion.resume(addresses) }
+                    override fun onGeocode(addresses: MutableList<Address>) { responder(addresses.aResultado()) }
                     override fun onError(errorMessage: String?) {
-                        if (continuacion.isActive) continuacion.resumeWith(Result.failure(IOException(errorMessage ?: "geocoder")))
+                        // Android no identifica aquí una causa fiable; no se registra ni muestra el texto recibido.
+                        responder(ResultadoGeocodificacion.Fallo)
                     }
                 })
-            }
-        } else {
-            withContext(Dispatchers.IO) {
-                @Suppress("DEPRECATION")
-                geocodificador.getFromLocation(posicion.latitud, posicion.longitud, 1).orEmpty()
+                // Esta API no ofrece cancelación del servicio; la espera descarta respuestas tardías.
+                return@esperarGeocodificacion {}
+            } else {
+                consultarGeocodificacionBloqueante(ejecutorAntiguo, {
+                    @Suppress("DEPRECATION")
+                    geocodificador.getFromLocation(posicion.latitud, posicion.longitud, 1).orEmpty().aResultado()
+                }, responder)
             }
         }
+
+    private fun List<Address>.aResultado(): ResultadoGeocodificacion = firstOrNull()?.let {
+        ResultadoGeocodificacion.Exito(it.aCruda())
+    } ?: ResultadoGeocodificacion.SinResultados
+
+    private companion object {
+        // Un solo trabajo, sin cola: un servicio nativo bloqueado no acumula hilos al reintentar.
+        val ejecutorAntiguo = ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, SynchronousQueue(),
+            { tarea -> Thread(tarea, "geocodificacion-puntual").apply { isDaemon = true } },
+            ThreadPoolExecutor.AbortPolicy())
+    }
 
     private fun Address.aCruda(): DireccionCruda = DireccionCruda(
         pais = countryName,

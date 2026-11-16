@@ -16,7 +16,11 @@ enum class FieldIssue {
     MAXIMO_ENTEROS, MAXIMO_DECIMALES, ENVIO_ANTERIOR, ENTREGA_ANTERIOR, ESTADO_INVALIDO
 }
 enum class PedidosPage { LISTA, DETALLE, EDITOR }
-data class PedidoDraft(val values: Map<PedidoField, String> = emptyMap()) {
+data class PedidoDraft(
+    val values: Map<PedidoField, String> = emptyMap(),
+    /** Estado recibido al editar. Se conserva literalmente aunque no forme parte del catálogo de creación. */
+    val estadoOriginal: String? = null
+) {
     operator fun get(field: PedidoField) = values[field].orEmpty()
     fun with(field: PedidoField, value: String) = copy(values = values + (field to value))
     fun issues(): Map<PedidoField, FieldIssue> = buildMap {
@@ -24,8 +28,9 @@ data class PedidoDraft(val values: Map<PedidoField, String> = emptyMap()) {
         for (field in PedidoField.entries) {
             val value = this@PedidoDraft[field]
             when {
-                // El estado es una lista cerrada: vacío, «Seleccione un estado» o cualquier otro texto no se puede guardar.
-                field == PedidoField.ESTADO -> if (value !in ESTADOS_PEDIDO) put(field, FieldIssue.ESTADO_INVALIDO)
+                // Crear usa cinco opciones; editar también permite conservar el estado real recibido de Spring.
+                field == PedidoField.ESTADO -> if (value.isBlank() ||
+                    (value !in ESTADOS_PEDIDO && value != estadoOriginal)) put(field, FieldIssue.ESTADO_INVALIDO)
                 value.isBlank() -> put(field, FieldIssue.OBLIGATORIO)
                 field in setOf(PedidoField.FECHA, PedidoField.FECHA_ENVIO, PedidoField.FECHA_ENTREGA) -> {
                     try {
@@ -64,7 +69,7 @@ data class PedidoDraft(val values: Map<PedidoField, String> = emptyMap()) {
             PedidoField.FECHA_ENTREGA to p.fechaEntrega.toString(), PedidoField.CLIENTE to p.cliente, PedidoField.PROVEEDOR to p.proveedor,
             PedidoField.VALOR to p.valor.toPlainString(), PedidoField.ESTADO to p.estado, PedidoField.PAIS to p.pais,
             PedidoField.DEPARTAMENTO to p.departamento, PedidoField.CIUDAD to p.ciudad,
-            PedidoField.NOMENCLATURA to p.nomenclaturaVivienda, PedidoField.PROPINA to p.propina.toPlainString()))
+            PedidoField.NOMENCLATURA to p.nomenclaturaVivienda, PedidoField.PROPINA to p.propina.toPlainString()), estadoOriginal = p.estado)
     }
 }
 data class PedidosUiState(

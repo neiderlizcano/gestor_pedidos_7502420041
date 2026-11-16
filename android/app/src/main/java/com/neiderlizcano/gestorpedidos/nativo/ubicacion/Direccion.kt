@@ -67,8 +67,10 @@ fun DireccionCruda.aSugerencia(precisionAproximada: Boolean = false): DireccionS
     val numeroLimpio = numero.limpio()?.removePrefix("#")?.trim()?.takeIf { it.isNotEmpty() }
     val nomenclatura = when {
         via != null && numeroLimpio != null ->
-            // Algunos servicios ya incluyen el número dentro de la calle: no se duplica.
-            if (via.contains(numeroLimpio)) via else "$via #$numeroLimpio"
+            // Solo un componente explícito de vivienda demuestra que el número ya estaba incluido.
+            // Un dígito de «Calle 12» no representa la vivienda «2».
+            if (via.substringAfterLast('#', "").trim().equals(numeroLimpio, ignoreCase = true))
+                via else "$via #$numeroLimpio"
         via != null -> { avisos += AvisoDireccion.SIN_NUMERO; via }
         numeroLimpio != null -> { avisos += AvisoDireccion.NUMERO_SIN_CALLE; null }
         else -> null

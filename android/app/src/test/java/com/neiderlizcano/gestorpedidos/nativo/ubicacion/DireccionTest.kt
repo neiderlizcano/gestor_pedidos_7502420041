@@ -8,6 +8,14 @@ import org.junit.Test
 
 // Direcciones ficticias; las pruebas no usan datos personales ni coordenadas reales de personas.
 class DireccionTest {
+    @Test fun digitosDeLaViaNoSustituyenElNumeroDeVivienda() {
+        val casos = listOf("Calle 12" to "2", "Carrera 10" to "1", "Calle 2" to "2", "Calle 10 #12" to "2")
+        for ((calle, numero) in casos) {
+            assertEquals("$calle #$numero", DireccionCruda(calle = calle, numero = numero).aSugerencia().nomenclatura)
+        }
+        assertEquals("Calle 10 #5-20", DireccionCruda(calle = "Calle 10 #5-20", numero = "#5-20").aSugerencia().nomenclatura)
+    }
+
     private val completa = DireccionCruda("Colombia", "Bolívar", "Cartagena", "Cartagena de Indias", "Carrera 5", "12-34")
 
     @Test fun direccionCompletaLlenaLosCuatroCamposSinAvisos() {

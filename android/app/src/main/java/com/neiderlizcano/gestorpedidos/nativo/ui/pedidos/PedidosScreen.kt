@@ -177,7 +177,7 @@ internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {
                     if (field in setOf(PedidoField.FECHA, PedidoField.FECHA_ENVIO, PedidoField.FECHA_ENTREGA)) {
                         PedidoDateField(state.draft[field], label(field), "pedidoField_" + field.name, !state.busy, error) { vm.cambiar(field, it) }
                     } else if (field == PedidoField.ESTADO) {
-                        PedidoEstadoField(state.draft[field], !state.busy, error) { vm.cambiar(field, it) }
+                        PedidoEstadoField(state.draft[field], !state.busy, error, estadoOriginal = state.draft.estadoOriginal) { vm.cambiar(field, it) }
                     } else {
                     CampoVisible {
                         OutlinedTextField(state.draft[field], { vm.cambiar(field, it) }, label = { Text(stringResource(label(field))) },

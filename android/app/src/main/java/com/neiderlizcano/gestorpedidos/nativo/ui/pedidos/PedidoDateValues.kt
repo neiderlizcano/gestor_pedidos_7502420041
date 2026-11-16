@@ -10,8 +10,12 @@ internal fun pickerDate(millis: Long): LocalDate = Instant.ofEpochMilli(millis).
 /** Texto del primer elemento del selector: invita a elegir y NO es un estado válido. */
 internal const val ESTADO_PLACEHOLDER = "Seleccione un estado"
 
-/** Estados válidos, en este orden (el mismo catálogo de la versión Kodular). La lista es cerrada. */
+/** Opciones de creación, en el orden acordado. Spring también puede devolver otros estados. */
 internal val ESTADOS_PEDIDO: List<String> = listOf("Pendiente", "En preparación", "Enviado", "Entregado", "Cancelado")
 
 /** Opciones exactas del selector: el marcador de posición seguido de los cinco estados. */
 internal val OPCIONES_ESTADO: List<String> = listOf(ESTADO_PLACEHOLDER) + ESTADOS_PEDIDO
+
+/** Conserva visible y seleccionable un estado existente sin sustituirlo por una opción del catálogo. */
+internal fun opcionesEstado(original: String?): List<String> =
+    if (!original.isNullOrBlank() && original !in OPCIONES_ESTADO) OPCIONES_ESTADO + original else OPCIONES_ESTADO
