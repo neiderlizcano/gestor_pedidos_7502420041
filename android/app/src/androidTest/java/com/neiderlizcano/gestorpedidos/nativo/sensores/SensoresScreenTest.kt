@@ -64,11 +64,13 @@ class SensoresScreenTest {
         val hw = HardwareDePrueba(); mostrar(hw)
         compose.onNodeWithTag("accEstado").assertIsDisplayed()
         compose.onNodeWithText(texto(R.string.sensores_acc_waiting)).assertIsDisplayed()
-        compose.onNodeWithText(texto(R.string.sensores_prox_waiting)).performScrollTo().assertIsDisplayed()
+        // La proximidad ya no forma parte de la interfaz.
+        compose.onAllNodesWithTag("sensorProximidad").assertCountEquals(0)
+        compose.onAllNodesWithText(texto(R.string.sensores_prox_waiting)).assertCountEquals(0)
     }
 
     @Test fun muestraEjesXYZYDetectaUnaSacudida() {
-        val hw = HardwareDePrueba(); mostrar(hw); esperarSuscripciones(hw, 2)
+        val hw = HardwareDePrueba(); mostrar(hw); esperarSuscripciones(hw, 1)
         hw.emitir(TipoSensor.ACELEROMETRO, 0.5f, 9.75f, -0.25f, instanteNs = 0L)
         esperarTag("accX")
         compose.onNodeWithTag("accX").assertIsDisplayed()
@@ -79,45 +81,43 @@ class SensoresScreenTest {
         compose.onNodeWithText(texto(R.string.sensores_acc_count, 1)).assertIsDisplayed()
     }
 
-    @Test fun proximidadMuestraCercaYLejos() {
-        val hw = HardwareDePrueba(); mostrar(hw); esperarSuscripciones(hw, 2)
-        hw.emitir(TipoSensor.PROXIMIDAD, 0f); esperarTag("proxCerca")
-        compose.onNodeWithText(texto(R.string.sensores_prox_near)).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("proxBinario").assertExists()
-        hw.emitir(TipoSensor.PROXIMIDAD, 5f); esperarTag("proxLejos")
-        compose.onNodeWithText(texto(R.string.sensores_prox_far)).performScrollTo().assertIsDisplayed()
+    @Test fun laInterfazNoMuestraProximidadNiRegistraEseSensor() {
+        val hw = HardwareDePrueba(); mostrar(hw); esperarSuscripciones(hw, 1) // solo el acelerómetro
+        hw.emitir(TipoSensor.PROXIMIDAD, 0f)
+        compose.waitForIdle()
+        compose.onAllNodesWithTag("sensorProximidad").assertCountEquals(0)
+        compose.onAllNodesWithTag("proxCerca").assertCountEquals(0)
+        compose.onNodeWithTag("sensorAcelerometro").assertIsDisplayed()
     }
 
     @Test fun sinSensoresMuestraMensajesClarosSinSuscribirse() {
         val hw = HardwareDePrueba(sensores = emptyMap()); mostrar(hw)
         compose.waitUntil(5_000) { compose.onAllNodesWithTag("accEstado").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(texto(R.string.sensores_acc_unavailable)).assertIsDisplayed()
-        compose.onNodeWithText(texto(R.string.sensores_prox_unavailable)).performScrollTo().assertIsDisplayed()
         assertEquals(0, hw.registros.get())
     }
 
     @Test fun unRegistroRechazadoMuestraErrorYElBotonReintenta() {
         val hw = HardwareDePrueba().apply { aceptaRegistro = false }; mostrar(hw)
         esperarTag("accEstadoReintentar")
-        // Ambos paneles (acelerómetro y proximidad) muestran el error de registro.
-        compose.onAllNodesWithText(texto(R.string.sensores_error_register)).assertCountEquals(2)
+        compose.onAllNodesWithText(texto(R.string.sensores_error_register)).assertCountEquals(1)
         hw.aceptaRegistro = true
         compose.onNodeWithTag("accEstadoReintentar").performScrollTo().performClick()
-        esperarSuscripciones(hw, 1) // el acelerómetro se registra; la proximidad sigue en error hasta su reintento
+        esperarSuscripciones(hw, 1) // el acelerómetro se registra tras reintentar
         hw.emitir(TipoSensor.ACELEROMETRO, 0f, 9.8f, 0f); esperarTag("accX")
     }
 
     @Test fun elSensorSeLiberaEnSegundoPlanoYSeReactivaAlVolver() {
-        val hw = HardwareDePrueba(); mostrar(hw); esperarSuscripciones(hw, 2)
+        val hw = HardwareDePrueba(); mostrar(hw); esperarSuscripciones(hw, 1)
         compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED) // onStop: la pantalla deja de ser visible
         esperarSuscripciones(hw, 0)
         compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
-        esperarSuscripciones(hw, 2)
-        assertEquals(4, hw.registros.get())
+        esperarSuscripciones(hw, 1)
+        assertEquals(2, hw.registros.get())
     }
 
     @Test fun alDestruirLaActividadNoQuedanSuscripciones() {
-        val hw = HardwareDePrueba(); mostrar(hw); esperarSuscripciones(hw, 2)
+        val hw = HardwareDePrueba(); mostrar(hw); esperarSuscripciones(hw, 1)
         compose.activityRule.scenario.moveToState(Lifecycle.State.DESTROYED)
         esperarSuscripciones(hw, 0)
     }

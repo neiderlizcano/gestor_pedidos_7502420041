@@ -10,6 +10,7 @@ internal class AuthFormFields {
     val code = mutableStateOf("")
     fun clear() { email.value = ""; password.value = ""; confirmation.value = ""; code.value = "" }
 }
+/** Conserva en memoria del ViewModel, nunca en Bundle ni en disco, los campos del formulario de acceso al rotar la pantalla. */
 internal class AuthFormMemory {
     private var step: AuthStep? = null
     private val fields = AuthFormFields()

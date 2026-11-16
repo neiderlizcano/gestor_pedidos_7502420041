@@ -2,6 +2,7 @@ package com.neiderlizcano.gestorpedidos.nativo.domain.pedidos
 
 import com.neiderlizcano.gestorpedidos.nativo.core.result.AppResult
 
+/** Operaciones CRUD sobre los pedidos del usuario autenticado. */
 interface PedidosRepository {
     suspend fun crear(datos: DatosPedido): AppResult<Pedido>
     suspend fun listar(): AppResult<List<Pedido>>

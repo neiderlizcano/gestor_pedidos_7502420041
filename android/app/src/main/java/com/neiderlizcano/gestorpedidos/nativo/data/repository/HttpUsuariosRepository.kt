@@ -6,6 +6,7 @@ import com.neiderlizcano.gestorpedidos.nativo.data.remote.mapper.toPerfil
 import com.neiderlizcano.gestorpedidos.nativo.data.remote.mapper.toSolicitud
 import com.neiderlizcano.gestorpedidos.nativo.domain.usuarios.*
 
+/** Implementación HTTP de [UsuariosRepository] sobre la API REST; usa el ejecutor común con JWT y renovación ante 401. */
 class HttpUsuariosRepository(private val api: UsuariosApi, private val executor: ApiRequestExecutor) : UsuariosRepository {
     override suspend fun crearPerfil(datos: DatosPerfil) = executor.execute({ api.crear(it, datos.toSolicitud()) }) { it.toPerfil() }
     override suspend fun consultarPerfilPropio() = executor.executeRead({ api.consultar(it) }) { it.toPerfil() }

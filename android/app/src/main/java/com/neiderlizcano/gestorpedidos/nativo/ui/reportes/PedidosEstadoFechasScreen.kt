@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.neiderlizcano.gestorpedidos.nativo.R
@@ -36,12 +35,11 @@ internal fun PedidosEstadoFechasScreen(ui: ReporteUi<FormularioEstadoFechas, Pag
         vacio = { it.contenido.isEmpty() },
         filtros = {
             val libre = !ui.busy
-            CampoFiltro(ui.form.estado, { v -> vm.cambiar { it.copy(estado = v) } }, R.string.reportes_field_estado,
-                "reporteCampo_estado", libre, ui.problemas[ReporteCampo.ESTADO])
-            CampoFiltro(ui.form.desde, { v -> vm.cambiar { it.copy(desde = v) } }, R.string.reportes_field_desde,
-                "reporteCampo_desde", libre, ui.problemas[ReporteCampo.DESDE], KeyboardType.Number)
-            CampoFiltro(ui.form.hasta, { v -> vm.cambiar { it.copy(hasta = v) } }, R.string.reportes_field_hasta,
-                "reporteCampo_hasta", libre, ui.problemas[ReporteCampo.HASTA], KeyboardType.Number)
+            CampoEstadoFiltro(ui.form.estado, { v -> vm.cambiar { it.copy(estado = v) } }, libre, ui.problemas[ReporteCampo.ESTADO])
+            CampoFechaFiltro(ui.form.desde, { v -> vm.cambiar { it.copy(desde = v) } }, R.string.reportes_field_desde,
+                "reporteCampo_desde", libre, ui.problemas[ReporteCampo.DESDE])
+            CampoFechaFiltro(ui.form.hasta, { v -> vm.cambiar { it.copy(hasta = v) } }, R.string.reportes_field_hasta,
+                "reporteCampo_hasta", libre, ui.problemas[ReporteCampo.HASTA])
             OpcionesFila(R.string.reportes_field_fecha_base, FechaBase.entries, ui.form.fechaBase, libre,
                 { base -> stringResource(when (base) {
                     FechaBase.FECHA -> R.string.reportes_base_fecha

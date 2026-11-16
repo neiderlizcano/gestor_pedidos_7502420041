@@ -1,6 +1,20 @@
 package com.neiderlizcano.gestorpedidos.nativo.ui.reportes
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import com.neiderlizcano.gestorpedidos.nativo.ui.pedidos.ESTADOS_PEDIDO
+import com.neiderlizcano.gestorpedidos.nativo.ui.pedidos.colorCampo
+import com.neiderlizcano.gestorpedidos.nativo.ui.pedidos.pickerDate
+import com.neiderlizcano.gestorpedidos.nativo.ui.pedidos.pickerMillis
+import java.time.LocalDate
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -118,6 +132,90 @@ internal fun CampoFiltro(
         supportingText = { problema?.let { Text(stringResource(mensajeProblema(it))) } },
         modifier = Modifier.fillMaxWidth().testTag(etiquetaTag)
     )
+}
+
+/**
+ * Selector de fecha opcional con calendario Material 3. El valor sigue siendo el texto AAAA-MM-DD que valida el
+ * ViewModel; vacío significa «sin filtro» y se puede quitar con el botón «Quitar».
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun CampoFechaFiltro(
+    valor: String,
+    onCambio: (String) -> Unit,
+    etiqueta: Int,
+    tag: String,
+    habilitado: Boolean,
+    problema: ReporteProblema?
+) {
+    var abierto by rememberSaveable { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedButton(
+                onClick = { abierto = true }, enabled = habilitado, shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, if (problema != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline),
+                modifier = Modifier.weight(1f).testTag(tag)
+            ) {
+                Column(Modifier.fillMaxWidth()) {
+                    Text(stringResource(etiqueta), style = MaterialTheme.typography.labelLarge)
+                    Text(valor.ifEmpty { stringResource(R.string.pedido_choose_date) })
+                }
+            }
+            if (valor.isNotEmpty()) TextButton(onClick = { onCambio("") }, enabled = habilitado, modifier = Modifier.testTag(tag + "Quitar")) {
+                Text(stringResource(R.string.reportes_fecha_quitar))
+            }
+        }
+        problema?.let {
+            Text(stringResource(mensajeProblema(it)), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.testTag(tag + "Problema"))
+        }
+    }
+    if (abierto) {
+        val inicial = remember { (parsearFechaIso(valor) ?: LocalDate.now()).pickerMillis() }
+        val estado = rememberDatePickerState(initialSelectedDateMillis = inicial, yearRange = 0..9999)
+        DatePickerDialog(
+            onDismissRequest = { abierto = false },
+            confirmButton = {
+                TextButton(enabled = estado.selectedDateMillis != null, modifier = Modifier.testTag("pedidoDateConfirm"), onClick = {
+                    estado.selectedDateMillis?.let { onCambio(pickerDate(it).toString()) }; abierto = false
+                }) { Text(stringResource(R.string.pedido_date_confirm)) }
+            },
+            dismissButton = { TextButton(onClick = { abierto = false }, modifier = Modifier.testTag("pedidoDateCancel")) { Text(stringResource(R.string.pedidos_cancel)) } }
+        ) {
+            TextButton(
+                onClick = { estado.displayMode = if (estado.displayMode == DisplayMode.Picker) DisplayMode.Input else DisplayMode.Picker },
+                modifier = Modifier.testTag("pedidoDateMode")
+            ) { Text(stringResource(if (estado.displayMode == DisplayMode.Picker) R.string.pedido_date_input else R.string.pedido_date_calendar)) }
+            DatePicker(state = estado, showModeToggle = false, modifier = Modifier.testTag("pedidoDatePicker"))
+        }
+    }
+}
+
+/**
+ * Lista desplegable de estados: «Todos los estados» (sin filtro) más los cinco estados del catálogo de pedidos.
+ * El backend compara el estado de forma exacta y no define un catálogo propio, por lo que se ofrecen los valores
+ * que la aplicación usa al crear pedidos.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun CampoEstadoFiltro(valor: String, onCambio: (String) -> Unit, habilitado: Boolean, problema: ReporteProblema?) {
+    var expandido by remember { mutableStateOf(false) }
+    val todos = stringResource(R.string.reportes_estado_todos)
+    ExposedDropdownMenuBox(expanded = expandido, onExpandedChange = { if (habilitado) expandido = !expandido }) {
+        OutlinedTextField(
+            value = valor.ifEmpty { todos }, onValueChange = {}, readOnly = true, singleLine = true, enabled = habilitado,
+            label = { Text(stringResource(R.string.reportes_field_estado)) }, isError = problema != null, colors = colorCampo(),
+            supportingText = { problema?.let { Text(stringResource(mensajeProblema(it))) } },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandido) },
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = habilitado).fillMaxWidth().testTag("reporteCampo_estado")
+        )
+        ExposedDropdownMenu(expanded = expandido, onDismissRequest = { expandido = false }, modifier = Modifier.testTag("reporteEstadoMenu")) {
+            (listOf("") + ESTADOS_PEDIDO).forEach { opcion ->
+                DropdownMenuItem(text = { Text(opcion.ifEmpty { todos }) }, onClick = { onCambio(opcion); expandido = false })
+            }
+        }
+    }
 }
 
 /** Fila de chips de selección única. */

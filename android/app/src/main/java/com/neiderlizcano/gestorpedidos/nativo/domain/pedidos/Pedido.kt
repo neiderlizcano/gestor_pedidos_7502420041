@@ -3,6 +3,7 @@ package com.neiderlizcano.gestorpedidos.nativo.domain.pedidos
 import java.math.BigDecimal
 import java.time.LocalDate
 
+/** Pedido con sus 13 atributos académicos; el identificador lo asigna el backend. */
 data class Pedido(
     val id: Long,
     val fecha: LocalDate,
@@ -19,7 +20,7 @@ data class Pedido(
     val propina: BigDecimal
 )
 
-// Solo contiene campos editables; el backend determina la identidad y el propietario.
+/** Campos editables de un pedido para crearlo o actualizarlo; el backend determina la identidad y el propietario. */
 data class DatosPedido(
     val fecha: LocalDate,
     val fechaEnvio: LocalDate,

@@ -79,6 +79,7 @@ private val Tipografia = Typography(
     labelSmall = TextStyle(fontSize = 11.sp, lineHeight = 16.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.4.sp)
 )
 
+/** Tema Material 3 de la aplicación: paleta azul, tipografía y formas de la maqueta, con variante oscura según el sistema. */
 @Composable
 fun GestorPedidosTheme(content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors, shapes = Formas, typography = Tipografia, content = content)

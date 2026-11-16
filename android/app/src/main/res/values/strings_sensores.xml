@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="sensores_demo_label">Sensores (demostración)</string>
     <string name="sensores_title">Sensores</string>
-    <string name="sensores_description">Observa el acelerómetro y el sensor de proximidad de tu dispositivo. Las lecturas solo se activan mientras esta pantalla está visible.</string>
+    <string name="sensores_description">Observa el acelerómetro de tu dispositivo. Las lecturas solo se activan mientras esta pantalla está visible.</string>
 
     <string name="sensores_acc_title">Acelerómetro</string>
     <string name="sensores_acc_waiting">Esperando la primera lectura del acelerómetro…</string>

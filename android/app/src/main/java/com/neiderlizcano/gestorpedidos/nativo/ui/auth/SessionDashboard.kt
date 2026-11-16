@@ -48,8 +48,10 @@ import com.neiderlizcano.gestorpedidos.nativo.sensores.SensoresRoute
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+/** Destinos de la sesión autenticada. */
 internal enum class Destino { MENU, PEDIDOS, PERFIL, REPORTES, SENSORES }
 
+/** Navegación de la sesión: destino actual y petición pendiente de abrir «Nuevo pedido». */
 internal class SessionNavigationViewModel : ViewModel() {
     private val destino = MutableStateFlow(Destino.MENU)
     private val nuevo = MutableStateFlow(false)
@@ -130,8 +132,8 @@ private fun MenuPrincipal(onPedidos: () -> Unit, onNuevo: () -> Unit, onPerfil: 
                 TarjetaMenu(R.string.menu_nuevo, R.string.menu_nuevo_desc, Icons.Filled.Add, "navNuevo", Modifier.weight(1f).fillMaxHeight(), orden = 1, onClick = onNuevo)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max)) {
-                TarjetaMenu(R.string.menu_reportes, R.string.f4_reportes_desc, Icons.Filled.Info, "navReportes", Modifier.weight(1f).fillMaxHeight(), orden = 2, onClick = onReportes)
-                TarjetaMenu(R.string.menu_sensores, R.string.f4_sensores_desc, Icons.Filled.Settings, "navSensores", Modifier.weight(1f).fillMaxHeight(), orden = 3, onClick = onSensores)
+                TarjetaMenu(R.string.menu_reportes, R.string.menu_reportes_desc, Icons.Filled.Info, "navReportes", Modifier.weight(1f).fillMaxHeight(), orden = 2, onClick = onReportes)
+                TarjetaMenu(R.string.menu_sensores, R.string.menu_sensores_desc, Icons.Filled.Settings, "navSensores", Modifier.weight(1f).fillMaxHeight(), orden = 3, onClick = onSensores)
             }
             TarjetaMenu(R.string.menu_perfil, R.string.menu_perfil_desc, Icons.Filled.Person, "navPerfil", Modifier.fillMaxWidth(), orden = 4, onClick = onPerfil)
             BotonApp(stringResource(R.string.auth_logout), onLogout, Modifier.fillMaxWidth().testTag("authLogout"), EstiloBoton.SECUNDARIO,

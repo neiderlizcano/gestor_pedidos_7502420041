@@ -8,6 +8,7 @@ import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
+import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
 import androidx.core.os.CancellationSignal
 import androidx.core.location.LocationManagerCompat
@@ -83,6 +84,11 @@ class ProveedorPosicionAndroid(
         }
     }
 
+    /**
+     * Pide una posición puntual al proveedor indicado. El único llamador, [obtenerConPermiso], comprueba el permiso
+     * antes y captura [SecurityException] por si se revoca durante la espera; la anotación declara ese contrato.
+     */
+    @RequiresPermission(anyOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
     private suspend fun ubicacionActual(gestor: LocationManager, proveedor: String): Location? =
         suspendCancellableCoroutine { continuacion ->
             val senal = CancellationSignal()

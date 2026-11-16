@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Logo: caja de pedido en perspectiva con cinta. Contenido dentro de la zona segura (círculo de 66 dp) del ícono adaptativo. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Cara superior -->
+    <path android:fillColor="#FFFFFFFF" android:pathData="M54,24 L81,39 L54,54 L27,39 Z" />
+    <!-- Cara izquierda -->
+    <path android:fillColor="#FFDBEAFE" android:pathData="M27,39 L54,54 L54,78 L27,63 Z" />
+    <!-- Cara derecha -->
+    <path android:fillColor="#FF93C5FD" android:pathData="M54,54 L81,39 L81,63 L54,78 Z" />
+    <!-- Cinta sobre la tapa -->
+    <path android:strokeColor="#FF2563EB" android:strokeWidth="3" android:strokeLineCap="round" android:pathData="M67.5,31.5 L40.5,46.5" />
+</vector>

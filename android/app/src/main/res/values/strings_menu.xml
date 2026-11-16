@@ -6,10 +6,11 @@
     <string name="menu_nuevo">Nuevo pedido</string>
     <string name="menu_nuevo_desc">Registra un pedido.</string>
     <string name="menu_reportes">Reportes</string>
+    <string name="menu_reportes_desc">Consulta tus pedidos y perfil mediante cuatro reportes.</string>
     <string name="menu_sensores">Sensores</string>
+    <string name="menu_sensores_desc">Observa el acelerómetro del dispositivo.</string>
     <string name="menu_perfil">Mi perfil</string>
     <string name="menu_perfil_desc">Consulta y edita tus datos de cuenta.</string>
-    <string name="menu_pending">Próximamente</string>
     <string name="menu_back_home">Volver al inicio</string>
     <string name="seccion_datos">Datos del pedido</string>
     <string name="seccion_fechas">Fechas</string>

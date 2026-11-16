@@ -7,7 +7,6 @@ import com.neiderlizcano.gestorpedidos.nativo.domain.auth.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
 import retrofit2.Response
 import java.io.IOException
 import java.time.Clock

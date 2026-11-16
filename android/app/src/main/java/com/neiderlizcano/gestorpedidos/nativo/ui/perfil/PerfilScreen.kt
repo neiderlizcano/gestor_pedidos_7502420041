@@ -30,6 +30,7 @@ import com.neiderlizcano.gestorpedidos.nativo.R
 import com.neiderlizcano.gestorpedidos.nativo.core.result.AppError
 import com.neiderlizcano.gestorpedidos.nativo.domain.usuarios.UsuariosRepository
 
+/** Punto de entrada del perfil propio; [onAccountDeleted] se invoca cuando la cuenta se eliminó correctamente. */
 @Composable
 fun PerfilRoute(repository: UsuariosRepository, onAccountDeleted: () -> Unit) {
     val factory = remember(repository, onAccountDeleted) { object : ViewModelProvider.Factory {
@@ -43,6 +44,7 @@ fun PerfilRoute(repository: UsuariosRepository, onAccountDeleted: () -> Unit) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     PerfilScreen(state, vm)
 }
+/** Consulta, creación, edición y eliminación de la cuenta del perfil propio. */
 @Composable
 internal fun PerfilScreen(state: PerfilUiState, vm: PerfilViewModel) {
     BackHandler(enabled = state.editing || state.busy) { if (!state.busy) vm.cancelar() }

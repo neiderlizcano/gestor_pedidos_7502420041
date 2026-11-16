@@ -27,7 +27,6 @@
     <string name="auth_complete_description">Ya puedes iniciar sesión con tu nueva contraseña.</string>
     <string name="auth_back">Volver al login</string>
     <string name="auth_logout">Cerrar sesión</string>
-    <string name="auth_active">Sesión activa</string>
     <string name="auth_logout_unconfirmed">Cerraste la sesión en este dispositivo. No pudimos confirmar la revocación remota.</string>
     <string name="auth_email_invalid">Escribe un correo electrónico válido.</string>
     <string name="auth_password_required">Escribe tu contraseña.</string>

@@ -57,5 +57,4 @@
     <string name="pedidos_state_invalid">Elige un estado de la lista (no «Seleccione un estado»).</string>
     <string name="pedidos_loading">Cargando tus pedidos…</string>
     <string name="pedidos_retry">Reintentar</string>
-    <string name="pedido_estado_empty">Sin estados previos. Puedes escribir uno.</string>
 </resources>

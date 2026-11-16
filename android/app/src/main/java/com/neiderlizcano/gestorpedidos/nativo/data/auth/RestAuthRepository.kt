@@ -1,6 +1,5 @@
 package com.neiderlizcano.gestorpedidos.nativo.data.auth
 
-import com.neiderlizcano.gestorpedidos.nativo.core.session.AccessTokenProvider
 import com.neiderlizcano.gestorpedidos.nativo.core.session.SessionTokenProvider
 import com.neiderlizcano.gestorpedidos.nativo.core.session.SessionCredential
 import com.neiderlizcano.gestorpedidos.nativo.domain.auth.*

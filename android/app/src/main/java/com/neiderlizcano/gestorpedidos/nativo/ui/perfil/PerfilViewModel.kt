@@ -7,7 +7,9 @@ import com.neiderlizcano.gestorpedidos.nativo.domain.usuarios.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
+/** Tipo de escritura sobre el perfil; sirve para señalar resultados inciertos. */
 enum class EscrituraPerfil { CREAR, ACTUALIZAR, ELIMINAR }
+/** Estado observable del perfil: datos, edición, errores, escritura incierta y confirmaciones. */
 data class PerfilUiState(
     val perfil: Perfil? = null, val missing: Boolean = false, val editing: Boolean = false,
     val username: String = "", val nombre: String = "", val dirty: Boolean = false,
@@ -18,6 +20,7 @@ data class PerfilUiState(
     val guardado: Boolean = false
 )
 
+/** Gestiona el perfil propio: consulta, creación explícita, edición y eliminación de cuenta con confirmación. */
 class PerfilViewModel(
     private val repository: UsuariosRepository,
     private val onAccountDeleted: () -> Unit,

@@ -28,6 +28,9 @@ import com.neiderlizcano.gestorpedidos.nativo.domain.reportes.SolicitudPagina
 import com.neiderlizcano.gestorpedidos.nativo.ui.theme.GestorPedidosTheme
 import org.junit.Assert.assertEquals
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
+import com.neiderlizcano.gestorpedidos.nativo.ui.auth.selectPedidoDate
 import org.junit.Rule
 import org.junit.Test
 import java.math.BigDecimal
@@ -41,6 +44,7 @@ private class RepositorioReportesUi(
     var error: AppError? = null
     var peticiones = 0
     var ultimaPagina: SolicitudPagina? = null
+    var ultimoFiltro: FiltroEstadoFechas? = null
 
     private fun <T> responder(valor: () -> T): AppResult<T> {
         peticiones++
@@ -54,7 +58,7 @@ private class RepositorioReportesUi(
         return PaginaReporte(pedidos.drop(inicio).take(p.tamano), p.pagina, p.tamano, inicio + p.tamano < pedidos.size)
     }
 
-    override suspend fun pedidosPorEstadoFechas(filtro: FiltroEstadoFechas, pagina: SolicitudPagina) = responder { pagina(pagina) }
+    override suspend fun pedidosPorEstadoFechas(filtro: FiltroEstadoFechas, pagina: SolicitudPagina) = responder { ultimoFiltro = filtro; pagina(pagina) }
     override suspend fun pedidosPorUbicacion(filtro: FiltroUbicacion, pagina: SolicitudPagina) = responder { pagina(pagina) }
     override suspend fun perfilesPorNombreUsername(filtro: FiltroNombreUsername) = responder { perfiles }
     override suspend fun perfilesPorCorreo(correo: String) = responder { perfiles }
@@ -96,11 +100,18 @@ class ReportesScreensTest {
         val repo = RepositorioReportesUi(pedidos = (1L..25L).map(::pedido))
         mostrar(repo); menu(ReporteTipo.PEDIDOS_ESTADO_FECHAS)
         compose.onNodeWithTag("reporteInicial").assertExists()
-        escribir("reporteCampo_desde", "2026-02-30"); pulsar("reporteConsultar")
-        compose.onNodeWithText(texto(R.string.reportes_problem_fecha)).assertExists()
+        // Las fechas se eligen en el calendario: desde posterior a hasta es un rango inválido y no envía la petición.
+        pulsar("reporteCampo_desde"); selectPedidoDate(compose, compose.activity, "2026-03-10")
+        pulsar("reporteCampo_hasta"); selectPedidoDate(compose, compose.activity, "2026-03-01")
+        pulsar("reporteConsultar")
+        compose.onNodeWithText(texto(R.string.reportes_problem_rango)).assertExists()
         assertEquals(0, repo.peticiones)
-        // Limpiar descarta la fecha errónea; luego se usan páginas de 10 filas.
+        // Cada fecha se puede quitar; Limpiar descarta todo. Después se elige un estado de la lista y una fecha desde.
+        pulsar("reporteCampo_hastaQuitar")
         pulsar("reporteLimpiar")
+        pulsar("reporteCampo_estado")
+        compose.onNode(hasText("Enviado") and hasAnyAncestor(hasTestTag("reporteEstadoMenu")), useUnmergedTree = true).performClick()
+        pulsar("reporteCampo_desde"); selectPedidoDate(compose, compose.activity, "2026-03-10")
         pulsar("reporteTamano_10"); pulsar("reporteConsultar")
         // Las filas quedan bajo el área visible de la lista perezosa: se espera la respuesta y se desplaza hasta la primera.
         compose.waitUntil(5_000) { repo.peticiones == 1 }
@@ -115,6 +126,9 @@ class ReportesScreensTest {
         compose.onNodeWithTag("reporteLista").performScrollToNode(hasTestTag("reportePedido_11"))
         compose.onNodeWithTag("reportePedido_11").assertExists()
         assertEquals(1, repo.ultimaPagina!!.pagina)
+        assertEquals("Enviado", repo.ultimoFiltro!!.estado)
+        assertEquals(LocalDate.parse("2026-03-10"), repo.ultimoFiltro!!.desde)
+        assertEquals(null, repo.ultimoFiltro!!.hasta)
         compose.onNodeWithTag("reporteLista").performScrollToNode(hasTestTag("reportePagina"))
         compose.onNodeWithTag("reporteAnterior").assertIsEnabled()
     }

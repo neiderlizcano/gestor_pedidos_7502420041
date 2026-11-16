@@ -14,7 +14,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-private class RuntimeF4 : AuthRuntime, ReportesRuntime {
+private class RuntimeConReportes : AuthRuntime, ReportesRuntime {
     val auth = UiRuntime().apply { restoredUser = "A" }
     override val authRepository = auth.authRepository
     override suspend fun inicializar() = auth.inicializar()
@@ -29,9 +29,9 @@ private class RuntimeF4 : AuthRuntime, ReportesRuntime {
     }
 }
 
-class F4MenuIntegrationTest {
+class MenuSesionIntegracionTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
-    private fun instalar(runtime: RuntimeF4) {
+    private fun instalar(runtime: RuntimeConReportes) {
         compose.activityRule.scenario.onActivity { it.setContent { GestorPedidosTheme { AuthRoute(runtime) } } }
         compose.waitUntil(5_000) { compose.onAllNodesWithTag("menuPrincipal").fetchSemanticsNodes().isNotEmpty() }
     }
@@ -42,7 +42,7 @@ class F4MenuIntegrationTest {
     }
 
     @Test fun losCuatroReportesSonAccesiblesDesdeLaSesionYVuelvenAlMenu() {
-        instalar(RuntimeF4())
+        instalar(RuntimeConReportes())
         for (tipo in ReporteTipo.entries) {
             reporte(tipo); compose.onNodeWithTag("reporteLista").assertIsDisplayed()
             compose.onNodeWithTag("navInicio").performClick()
@@ -51,19 +51,19 @@ class F4MenuIntegrationTest {
     }
 
     @Test fun sensoresSeAbrenDesdeElMenuPrincipalSinActividadDemo() {
-        instalar(RuntimeF4())
+        instalar(RuntimeConReportes())
         compose.onNodeWithTag("navSensores").performScrollTo()
         compose.onNodeWithTag("navSensores").performClick()
         compose.onNodeWithTag("sensorAcelerometro").performScrollTo()
         compose.onNodeWithTag("sensorAcelerometro").assertExists()
-        compose.onNodeWithTag("sensorProximidad").performScrollTo()
-        compose.onNodeWithTag("sensorProximidad").assertExists()
+        // La proximidad se retiró de la interfaz de sensores.
+        compose.onAllNodesWithTag("sensorProximidad").assertCountEquals(0)
         compose.onNodeWithTag("navInicio").performClick()
         compose.onNodeWithTag("menuPrincipal").assertIsDisplayed()
     }
 
     @Test fun resultadoDeReporteNoPasaALaSiguienteCuentaYElFiltroSobreviveSoloALaRotacion() {
-        val runtime = RuntimeF4(); instalar(runtime)
+        val runtime = RuntimeConReportes(); instalar(runtime)
         reporte(ReporteTipo.USUARIOS_CORREO)
         compose.onNodeWithTag("reporteLista").performScrollToNode(hasTestTag("reporteCampo_correo"))
         compose.onNodeWithTag("reporteCampo_correo").performTextInput("cuentaA@example.invalid")

@@ -35,6 +35,7 @@ import com.neiderlizcano.gestorpedidos.nativo.domain.pedidos.PedidosRepository
 import com.neiderlizcano.gestorpedidos.nativo.ubicacion.UsarMiUbicacion
 import kotlinx.coroutines.flow.first
 
+/** Punto de entrada de pedidos: crea el [PedidosViewModel] de la sesión y, si [abrirNuevo], abre el formulario nuevo (o retoma el borrador) al terminar la carga inicial. */
 @Composable
 fun PedidosRoute(repository: PedidosRepository, abrirNuevo: Boolean = false, onNuevoAtendido: () -> Unit = {}) {
     val factory = remember(repository) { object : ViewModelProvider.Factory {
@@ -57,6 +58,7 @@ fun PedidosRoute(repository: PedidosRepository, abrirNuevo: Boolean = false, onN
     PedidosScreen(state, vm)
 }
 
+/** Listado, detalle y formulario de pedidos según [PedidosUiState.page]. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun PedidosScreen(state: PedidosUiState, vm: PedidosViewModel) {

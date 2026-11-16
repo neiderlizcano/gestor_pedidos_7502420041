@@ -3,6 +3,7 @@ package com.neiderlizcano.gestorpedidos.nativo.di
 import com.neiderlizcano.gestorpedidos.nativo.domain.auth.*
 import kotlinx.coroutines.flow.MutableStateFlow
 
+/** Acceso de la interfaz a la autenticación y a su inicialización. */
 interface AuthRuntime {
     val authRepository: AuthRepository
     suspend fun inicializar(): ResultadoAuth<Unit>

@@ -30,12 +30,10 @@ import com.neiderlizcano.gestorpedidos.nativo.R
 import java.util.Locale
 
 /**
- * Pantalla del módulo de sensores con el hardware real del dispositivo.
+ * Pantalla del módulo de sensores con el hardware real del dispositivo; muestra solo el acelerómetro.
  *
- * Integración: SessionDashboard invoca esta función desde el
- * destino que se decida, dentro del propietario de ViewModels de la sesión si la pantalla debe
- * descartarse al cerrar sesión. El módulo no usa red, tokens ni datos del usuario y no requiere permisos
- * en el manifiesto (el acelerómetro y la proximidad no los necesitan a la frecuencia usada).
+ * Se abre desde el menú de la sesión. El módulo no usa red, tokens ni datos del usuario y no requiere permisos
+ * en el manifiesto: el acelerómetro no los necesita a la frecuencia usada.
  */
 @Composable
 fun SensoresRoute() {
@@ -50,16 +48,15 @@ fun SensoresRoute(hardware: SensorHardware) {
     val fuente = remember(hardware) { FuenteSensores(hardware) }
     val acelerometro: AcelerometroViewModel = viewModel(
         factory = fabrica(AcelerometroViewModel::class.java) { AcelerometroViewModel(fuente) })
-    val proximidad: ProximidadViewModel = viewModel(
-        factory = fabrica(ProximidadViewModel::class.java) { ProximidadViewModel(fuente) })
+    // La interfaz muestra solo el acelerómetro: sin ViewModel de proximidad no se registra ese sensor.
     // La recolección respeta el ciclo de vida: se detiene en onStop y libera el sensor.
     val accUi by acelerometro.uiState.collectAsStateWithLifecycle()
-    val proxUi by proximidad.uiState.collectAsStateWithLifecycle()
-    SensoresScreen(accUi, proxUi, acelerometro::reintentar, proximidad::reintentar)
+    SensoresScreen(accUi, acelerometro::reintentar)
 }
 
+/** Pantalla de sensores: muestra solo el acelerómetro. */
 @Composable
-internal fun SensoresScreen(acc: AcelerometroUi, prox: ProximidadUi, onReintentarAcc: () -> Unit, onReintentarProx: () -> Unit) {
+internal fun SensoresScreen(acc: AcelerometroUi, onReintentarAcc: () -> Unit) {
     Column(
         Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp).testTag("sensoresPantalla"),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -67,7 +64,6 @@ internal fun SensoresScreen(acc: AcelerometroUi, prox: ProximidadUi, onReintenta
         Text(stringResource(R.string.sensores_title), style = MaterialTheme.typography.headlineMedium)
         Text(stringResource(R.string.sensores_description))
         PanelAcelerometro(acc, onReintentarAcc)
-        PanelProximidad(prox, onReintentarProx)
     }
 }
 
@@ -104,6 +100,7 @@ private fun MensajeError(motivo: MotivoErrorSensor, tag: String, onReintentar: (
     OutlinedButton(onClick = onReintentar, modifier = Modifier.testTag(tag + "Reintentar")) { Text(stringResource(R.string.sensores_retry)) }
 }
 
+/** Panel del acelerómetro: espera, no disponible, error con reintento o lecturas por eje, magnitud y detección de movimiento. */
 @Composable
 internal fun PanelAcelerometro(estado: AcelerometroUi, onReintentar: () -> Unit) {
     PanelSensor(R.string.sensores_acc_title, "sensorAcelerometro") {
@@ -125,32 +122,6 @@ internal fun PanelAcelerometro(estado: AcelerometroUi, onReintentar: () -> Unit)
                 )
                 Text(stringResource(R.string.sensores_acc_count, estado.detecciones), modifier = Modifier.testTag("accConteo"))
                 if (estado.precisionBaja) MensajeEstado(R.string.sensores_acc_low_accuracy, "accPrecision")
-            }
-        }
-    }
-}
-
-@Composable
-internal fun PanelProximidad(estado: ProximidadUi, onReintentar: () -> Unit) {
-    PanelSensor(R.string.sensores_prox_title, "sensorProximidad") {
-        when (estado) {
-            ProximidadUi.Esperando -> EsperaConIndicador(R.string.sensores_prox_waiting, "proxEstado")
-            ProximidadUi.NoDisponible -> MensajeEstado(R.string.sensores_prox_unavailable, "proxEstado")
-            ProximidadUi.DatosNoDisponibles -> MensajeEstado(R.string.sensores_prox_invalid, "proxEstado")
-            is ProximidadUi.Error -> MensajeError(estado.motivo, "proxEstado", onReintentar)
-            is ProximidadUi.Medida -> {
-                Text(
-                    stringResource(if (estado.cerca) R.string.sensores_prox_near else R.string.sensores_prox_far),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = if (estado.cerca) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.testTag(if (estado.cerca) "proxCerca" else "proxLejos")
-                )
-                // Los sensores binarios no miden distancia real: solo se muestra la capacidad que tienen.
-                if (estado.binario) Text(stringResource(R.string.sensores_prox_binary, formato(estado.rangoMaximoCm)), modifier = Modifier.testTag("proxBinario"))
-                else {
-                    Text(stringResource(R.string.sensores_prox_distance, formato(estado.distanciaCm)), modifier = Modifier.testTag("proxDistancia"))
-                    Text(stringResource(R.string.sensores_prox_range, formato(estado.rangoMaximoCm)))
-                }
             }
         }
     }

@@ -10,12 +10,16 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
+/** Campos editables del pedido; el identificador lo asigna el backend. */
 enum class PedidoField { FECHA, FECHA_ENVIO, FECHA_ENTREGA, CLIENTE, PROVEEDOR, VALOR, ESTADO, PAIS, DEPARTAMENTO, CIUDAD, NOMENCLATURA, PROPINA }
+/** Problemas de validación de un campo, que la pantalla traduce a mensajes. */
 enum class FieldIssue {
     OBLIGATORIO, FECHA_ISO, DECIMAL, VALOR_POSITIVO, PROPINA_NO_NEGATIVA,
     MAXIMO_ENTEROS, MAXIMO_DECIMALES, ENVIO_ANTERIOR, ENTREGA_ANTERIOR, ESTADO_INVALIDO
 }
+/** Vista actual de pedidos: lista, detalle o editor. */
 enum class PedidosPage { LISTA, DETALLE, EDITOR }
+/** Borrador del formulario: texto de cada campo y, al editar, el estado original recibido del servidor. */
 data class PedidoDraft(
     val values: Map<PedidoField, String> = emptyMap(),
     /** Estado recibido al editar. Se conserva literalmente aunque no forme parte del catálogo de creación. */
@@ -72,6 +76,7 @@ data class PedidoDraft(
             PedidoField.NOMENCLATURA to p.nomenclaturaVivienda, PedidoField.PROPINA to p.propina.toPlainString()), estadoOriginal = p.estado)
     }
 }
+/** Estado observable de pedidos: vista, datos, borrador, ocupación, errores de validación y resultado de la última escritura. */
 data class PedidosUiState(
     val page: PedidosPage = PedidosPage.LISTA,
     val items: List<Pedido> = emptyList(), val selected: Pedido? = null,
@@ -87,8 +92,10 @@ data class PedidosUiState(
     val exito: ExitoPedido? = null
 )
 
+/** Resultado correcto de la última escritura, mostrado como confirmación. */
 enum class ExitoPedido { CREADO, ACTUALIZADO, ELIMINADO }
 
+/** Gestiona el CRUD de pedidos: carga, borrador, validación, guardado sin envíos repetidos y eliminación confirmada. */
 class PedidosViewModel(private val repository: PedidosRepository, testScope: CoroutineScope? = null) : ViewModel() {
     private val scope = testScope ?: viewModelScope
     private val state = MutableStateFlow(PedidosUiState())

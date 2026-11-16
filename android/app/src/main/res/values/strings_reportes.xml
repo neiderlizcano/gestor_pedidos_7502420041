@@ -30,15 +30,14 @@
     <string name="reportes_field_pais">País</string>
     <string name="reportes_field_departamento">Departamento</string>
     <string name="reportes_field_ciudad">Ciudad</string>
-    <string name="reportes_field_campo">Buscar por</string>
-    <string name="reportes_campo_nombre">Nombre</string>
-    <string name="reportes_campo_username">Username</string>
     <string name="reportes_field_coincidencia">Coincidencia</string>
     <string name="reportes_coincidencia_exacta">Exacta</string>
     <string name="reportes_coincidencia_prefijo">Empieza por</string>
     <string name="reportes_field_termino">Término de búsqueda</string>
     <string name="reportes_field_correo">Correo electrónico</string>
 
+    <string name="reportes_estado_todos">Todos los estados</string>
+    <string name="reportes_fecha_quitar">Quitar</string>
     <string name="reportes_problem_fecha">Usa una fecha real con el formato AAAA-MM-DD.</string>
     <string name="reportes_problem_rango">La fecha inicial no puede ser posterior a la final.</string>
     <string name="reportes_problem_ubicacion">Indica al menos un país, departamento o ciudad.</string>

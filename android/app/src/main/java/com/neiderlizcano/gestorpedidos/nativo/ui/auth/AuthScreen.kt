@@ -42,6 +42,7 @@ import com.neiderlizcano.gestorpedidos.nativo.di.PedidosRuntime
 import com.neiderlizcano.gestorpedidos.nativo.di.UnavailablePedidosRepository
 import com.neiderlizcano.gestorpedidos.nativo.domain.pedidos.PedidosRepository
 
+/** Punto de entrada de la interfaz: crea el [AuthViewModel] y muestra acceso, registro, recuperación o la sesión autenticada. Si falta la configuración pública, muestra un aviso en su lugar. */
 @Composable
 fun AuthRoute(runtime: AuthRuntime) {
     val factory = remember(runtime) {
@@ -72,6 +73,7 @@ fun AuthRoute(runtime: AuthRuntime) {
         (runtime as? UsuariosRuntime)?.usuariosRepository ?: UnavailableUsuariosRepository, vm::cuentaEliminada, vm::abrirRegistro, vm::registrar, vm::corregirCampo, vm.formMemory, (runtime as? ReportesRuntime)?.reportesRepository ?: UnavailableReportesRepository)
 }
 
+/** Pantalla de autenticación y contenedor de la sesión: formularios de acceso o, con sesión iniciada, el menú y los módulos mediante [SessionContent]. */
 @Composable
 internal fun AuthScreen(
     state: AuthUiState,

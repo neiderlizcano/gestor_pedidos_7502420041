@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="perfil_title">Mi perfil</string>
-    <string name="perfil_nav_pedidos">Pedidos</string>
     <string name="perfil_username">Nombre de usuario</string>
     <string name="perfil_nombre">Nombre</string>
     <string name="perfil_email_readonly">Correo (solo lectura)</string>

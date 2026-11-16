@@ -5,9 +5,11 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 
+/** Propietario de ViewModels privado de una sesión; se limpia al cerrar sesión o cambiar de cuenta. */
 internal class SessionViewModelOwner : ViewModelStoreOwner {
     override val viewModelStore = ViewModelStore()
 }
+/** Ejecuta [content] con un almacén de ViewModels propio de la cuenta y de la versión de sesión, para que ningún estado pase de una cuenta a otra. */
 @Composable
 internal fun SessionContent(usuarioId: String, version: Long = 0, retained: RetainedSessionStores? = null, content: @Composable () -> Unit) {
     key(usuarioId, version) {

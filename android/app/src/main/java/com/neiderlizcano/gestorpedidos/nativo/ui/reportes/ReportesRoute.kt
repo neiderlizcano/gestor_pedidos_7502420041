@@ -32,11 +32,10 @@ enum class ReporteTipo { PEDIDOS_ESTADO_FECHAS, PEDIDOS_UBICACION, USUARIOS_NOMB
  * Punto de entrada del módulo de reportes: menú con los cuatro reportes y navegación interna propia.
  * No modifica la navegación compartida de la aplicación.
  *
- * Integración en SessionDashboard (dentro de SessionContent):
- *  1. Invocar esta función desde el subárbol autenticado (dentro del propietario de ViewModels de la sesión),
- *     para que los ViewModels de reportes se descarten al cerrar sesión o cambiar de cuenta.
- *  2. Pasar un [ReportesRepository] construido con el mismo proveedor de token que usa el CRUD
- *     (`AppContainer.reportesRepository`); este módulo nunca recibe tokens ni identificadores de usuario.
+ * Se muestra desde el menú de la sesión, dentro del propietario de ViewModels de la cuenta, por lo que los
+ * ViewModels de reportes se descartan al cerrar sesión o cambiar de cuenta. Recibe un [ReportesRepository] que usa
+ * el mismo proveedor de token que el CRUD (`AppContainer.reportesRepository`); este módulo nunca recibe tokens ni
+ * identificadores de usuario.
  */
 @Composable
 fun ReportesRoute(repositorio: ReportesRepository) {

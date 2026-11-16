@@ -6,9 +6,13 @@ import com.neiderlizcano.gestorpedidos.nativo.domain.auth.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
+/** Paso del flujo de acceso: login, registro, recuperación por correo, código y nueva contraseña. */
 enum class AuthStep { LOGIN, REGISTRO, REGISTRO_ENVIADO, CORREO, OTP, NUEVA_PASSWORD, COMPLETADA }
+/** Campo del formulario de acceso que tiene un error de validación local. */
 enum class AuthValidation { EMAIL, PASSWORD, CODIGO, CONFIRMACION }
+/** Pantalla de mayor nivel: restaurando sesión, error al restaurar, formularios o sesión iniciada. */
 enum class AuthDestination { RESTAURANDO, ERROR_RESTAURACION, FORMULARIO, INICIO }
+/** Estado observable de la autenticación: sesión, paso del flujo, ocupación, errores y campos inválidos. */
 data class AuthUiState(
     val sesion: EstadoSesion = EstadoSesion.Cargando,
     val step: AuthStep = AuthStep.LOGIN,
@@ -28,6 +32,7 @@ data class AuthUiState(
     }
 }
 
+/** Coordina el flujo de autenticación y expone [AuthUiState]; el acceso a red vive en [AuthRepository]. */
 class AuthViewModel(
     private val repository: AuthRepository,
     private val initialize: suspend () -> ResultadoAuth<Unit>,

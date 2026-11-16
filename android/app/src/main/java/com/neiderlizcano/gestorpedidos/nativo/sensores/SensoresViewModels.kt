@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.update
 // recolecta `uiState` (con `collectAsStateWithLifecycle`, es decir, entre onStart y onStop) porque el
 // estado se comparte con `WhileSubscribed(0)`: al pasar la pantalla a segundo plano el sensor se libera.
 
+/** Estados de la interfaz del acelerómetro. */
 sealed interface AcelerometroUi {
     /** Suscrito, pero aún sin ninguna lectura. */
     data object Esperando : AcelerometroUi
@@ -46,6 +47,7 @@ sealed interface ProximidadUi {
 /** Tiempo que se mantiene visible el aviso de movimiento tras una sacudida. */
 const val DURACION_AVISO_NS = 1_500_000_000L
 
+/** Expone las lecturas del acelerómetro como [AcelerometroUi] y las libera cuando la pantalla deja de observarlas. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AcelerometroViewModel(
     private val fuente: FuenteSensores,

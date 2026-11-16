@@ -6,6 +6,7 @@ import com.neiderlizcano.gestorpedidos.nativo.data.remote.mapper.toPagina
 import com.neiderlizcano.gestorpedidos.nativo.data.remote.mapper.toReportePerfiles
 import com.neiderlizcano.gestorpedidos.nativo.domain.reportes.*
 
+/** Implementación HTTP de [ReportesRepository] sobre la API REST; usa el ejecutor común con JWT y renovación ante 401. */
 class HttpReportesRepository(private val api: ReportesApi, private val executor: ApiRequestExecutor) : ReportesRepository {
     override suspend fun pedidosPorEstadoFechas(filtro: FiltroEstadoFechas, pagina: SolicitudPagina) =
         executor.executeRead({ authorization ->
