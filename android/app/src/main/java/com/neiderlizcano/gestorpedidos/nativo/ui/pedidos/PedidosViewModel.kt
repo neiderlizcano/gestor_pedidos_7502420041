@@ -64,10 +64,13 @@ data class PedidoDraft(
         if (fecha != null && envio != null && envio.isBefore(fecha)) put(PedidoField.FECHA_ENVIO, FieldIssue.ENVIO_ANTERIOR)
         if (envio != null && entrega != null && entrega.isBefore(envio)) put(PedidoField.FECHA_ENTREGA, FieldIssue.ENTREGA_ANTERIOR)
     }
+    // Los textos libres se recortan: los reportes filtran por igualdad exacta y un espacio final impediría encontrar el pedido.
+    // El estado no se recorta porque debe coincidir literalmente con el catálogo o con el valor original del servidor.
     fun datos(): DatosPedido = DatosPedido(LocalDate.parse(this[PedidoField.FECHA]), LocalDate.parse(this[PedidoField.FECHA_ENVIO]),
-        LocalDate.parse(this[PedidoField.FECHA_ENTREGA]), this[PedidoField.CLIENTE], this[PedidoField.PROVEEDOR],
-        BigDecimal(this[PedidoField.VALOR]), this[PedidoField.ESTADO], this[PedidoField.PAIS], this[PedidoField.DEPARTAMENTO],
-        this[PedidoField.CIUDAD], this[PedidoField.NOMENCLATURA], BigDecimal(this[PedidoField.PROPINA]))
+        LocalDate.parse(this[PedidoField.FECHA_ENTREGA]), texto(PedidoField.CLIENTE), texto(PedidoField.PROVEEDOR),
+        BigDecimal(this[PedidoField.VALOR]), this[PedidoField.ESTADO], texto(PedidoField.PAIS), texto(PedidoField.DEPARTAMENTO),
+        texto(PedidoField.CIUDAD), texto(PedidoField.NOMENCLATURA), BigDecimal(this[PedidoField.PROPINA]))
+    private fun texto(field: PedidoField) = this[field].trim()
     companion object {
         fun from(p: Pedido) = PedidoDraft(mapOf(PedidoField.FECHA to p.fecha.toString(), PedidoField.FECHA_ENVIO to p.fechaEnvio.toString(),
             PedidoField.FECHA_ENTREGA to p.fechaEntrega.toString(), PedidoField.CLIENTE to p.cliente, PedidoField.PROVEEDOR to p.proveedor,

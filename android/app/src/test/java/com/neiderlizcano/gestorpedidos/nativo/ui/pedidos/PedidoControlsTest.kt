@@ -25,5 +25,21 @@ class PedidoControlsTest {
    assertEquals(LocalDate.of(1970,1,1),pickerDate(0L))
   } finally { java.util.TimeZone.setDefault(before) }
  }
+ @Test fun freeTextFieldsAreTrimmedButStatusIsSentLiterally() {
+  var draft=PedidoDraft.from(samplePedido())
+  for(field in listOf(PedidoField.CLIENTE,PedidoField.PROVEEDOR,PedidoField.PAIS,PedidoField.DEPARTAMENTO,PedidoField.CIUDAD,PedidoField.NOMENCLATURA))
+   draft=draft.with(field,"  valor ${field.name}  ")
+  draft=draft.with(PedidoField.ESTADO,"Enviado")
+  assertTrue(draft.issues().isEmpty())
+  val datos=draft.datos()
+  assertEquals("valor CLIENTE",datos.cliente);assertEquals("valor PROVEEDOR",datos.proveedor)
+  assertEquals("valor PAIS",datos.pais);assertEquals("valor DEPARTAMENTO",datos.departamento)
+  assertEquals("valor CIUDAD",datos.ciudad);assertEquals("valor NOMENCLATURA",datos.nomenclaturaVivienda)
+  assertEquals("Enviado",datos.estado)
+ }
+ @Test fun whitespaceOnlyTextIsStillRequired() {
+  val draft=PedidoDraft.from(samplePedido()).with(PedidoField.CIUDAD,"   ")
+  assertEquals(FieldIssue.OBLIGATORIO,draft.issues()[PedidoField.CIUDAD])
+ }
 
 }
