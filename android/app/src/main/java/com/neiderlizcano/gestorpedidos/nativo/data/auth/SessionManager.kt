@@ -137,14 +137,10 @@ internal class CoordinatedSessionManager(
 
     suspend fun credential(): SessionCredential? {
         val expected = mutex.withLock { load(); generation }
-        while (true) {
-            val token = tokenVigente() ?: return null
-            val captured = mutex.withLock {
-                if (expected == generation && failure == null && session?.accessToken == token) SessionCredential(token, generation) else null
-            }
-            if (captured != null) return captured
-            // No capturar el token de otra cuenta si cambió mientras esperábamos.
-            return null
+        val token = tokenVigente() ?: return null
+        // No capturar el token de otra cuenta si la sesión cambió mientras esperábamos.
+        return mutex.withLock {
+            if (expected == generation && failure == null && session?.accessToken == token) SessionCredential(token, generation) else null
         }
     }
     suspend fun isCurrent(credential: SessionCredential): Boolean = mutex.withLock {

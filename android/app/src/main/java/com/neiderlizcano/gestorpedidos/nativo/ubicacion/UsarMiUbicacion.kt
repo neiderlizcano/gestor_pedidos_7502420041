@@ -73,7 +73,7 @@ private class PermisosDelSistema(private val contexto: Context) : PermisosUbicac
  * se pudieron obtener (los demás llegan como null y el formulario debe conservar lo que ya tenía el usuario).
  * No hay seguimiento en segundo plano ni se guardan coordenadas.
  *
- * Integración: ver `docs/UBICACION.md`. Debe vivir en el propietario de ViewModels de la pantalla de pedidos.
+ * Integración: lo usa el editor de `PedidosScreen`. Debe vivir en el propietario de ViewModels de la pantalla de pedidos.
  */
 @Composable
 fun UsarMiUbicacion(onDireccion: (DireccionSugerida) -> Unit, modifier: Modifier = Modifier) {

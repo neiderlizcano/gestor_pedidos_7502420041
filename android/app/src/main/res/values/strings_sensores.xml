@@ -14,15 +14,8 @@
     <string name="sensores_acc_count">Movimientos detectados: %1$d</string>
     <string name="sensores_acc_low_accuracy">La precisión del sensor es baja; las lecturas pueden variar.</string>
 
-    <string name="sensores_prox_title">Proximidad</string>
+    <!-- Solo para la prueba instrumentada que verifica que la proximidad no se muestra. -->
     <string name="sensores_prox_waiting">Esperando una lectura del sensor de proximidad… Acerca o aleja la mano del dispositivo.</string>
-    <string name="sensores_prox_unavailable">Este dispositivo no tiene sensor de proximidad.</string>
-    <string name="sensores_prox_invalid">El sensor de proximidad no entregó datos utilizables.</string>
-    <string name="sensores_prox_near">Hay un objeto cerca</string>
-    <string name="sensores_prox_far">No hay objetos cerca</string>
-    <string name="sensores_prox_distance">Distancia medida: %1$s cm</string>
-    <string name="sensores_prox_binary">Este sensor solo distingue cerca y lejos (alcance máximo %1$s cm).</string>
-    <string name="sensores_prox_range">Alcance máximo del sensor: %1$s cm.</string>
 
     <string name="sensores_error_register">No se pudo activar el sensor. Otra aplicación o el sistema pueden estar limitándolo.</string>
     <string name="sensores_error_unexpected">Ocurrió un error inesperado al leer el sensor.</string>
