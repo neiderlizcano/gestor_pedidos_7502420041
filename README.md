@@ -119,7 +119,7 @@ Los archivos publicables se entregan mediante operaciones Git revisadas. No se i
 
 ## Unidad 4 — Cliente Ionic Vue (`mobile/`)
 
-Infraestructura inicial del cliente multiplataforma. Por ahora la pantalla de inicio comprueba `GET /actuator/health` del backend en Render y muestra el resultado; las funciones de pedidos y perfil se incorporarán en los siguientes cortes. La plataforma Android de Capacitor aún no está agregada.
+Infraestructura inicial del cliente multiplataforma. Por ahora la pantalla de inicio comprueba `GET /actuator/health` del backend en Render y muestra el resultado; las funciones de pedidos y perfil se incorporarán en los siguientes cortes. El proyecto nativo de Capacitor está en `mobile/android/` y es independiente del proyecto Kotlin de Unidad 3 en `android/`.
 
 ### Arquitectura
 
@@ -136,7 +136,7 @@ mobile/tests/    Pruebas unitarias con Vitest
 ### Requisitos
 
 - Node.js 24 (LTS) y npm 11 o superior.
-- Para Android (corte C4-02): Android Studio y JDK compatibles con Capacitor 8.
+- Para Android: JDK 21, Android SDK con la plataforma 36 (`compileSdk`/`targetSdk` 36, `minSdk` 24) y Android Studio o `adb` para instalar. Detalles en [Compilación Android](#compilación-android-capacitor).
 
 ### Instalación
 
@@ -179,6 +179,75 @@ La primera consulta puede tardar mientras Render despierta el servicio gratuito;
 - Un hosting web necesitaría redirigir las rutas de la SPA (`/inicio`, `/acerca`, …) a `index.html` para que recargar o abrir un enlace directo no devuelva 404.
 - Las peticiones a la API requerirían un proxy del propio hosting hacia el backend, o bien definir `VITE_API_BASE_URL` con una URL HTTPS absoluta cuyo backend permita ese origen mediante CORS.
 - El objetivo principal del Corte 4 es generar la aplicación Android con Capacitor, que usa `VITE_NATIVE_API_BASE_URL` y no depende del proxy. El hosting web público no está configurado todavía.
+
+### Compilación Android (Capacitor)
+
+| Dato | Valor |
+| --- | --- |
+| Identificador | `com.neiderlizcano.gestorpedidos.ionic` (distinto del APK nativo de Unidad 3) |
+| Nombre visible | Gestor de Pedidos |
+| Permisos | Solo `INTERNET` |
+| Plugins nativos | `@capacitor/app`: botón Atrás del sistema. Ionic lo usa para navegar y, en la pantalla raíz, `App.minimizeApp()` envía la app a segundo plano |
+| Herramientas del template | Capacitor 8.6, Android Gradle Plugin 8.13.0 y Gradle Wrapper 8.14.3 |
+
+**JDK:** Capacitor 8 compila con Java 21, y Gradle 8.14.3 solo se ejecuta sobre JDK 17–24. El JDK 25 que incluyen las versiones recientes de Android Studio falla con `Unsupported class file major version 69`, y el JDK 17 no admite el nivel 21. Instalar un JDK 21 (por ejemplo Temurin 21) y apuntar `JAVA_HOME` a él solo en la sesión de compilación. No se debe subir el wrapper a Gradle 9.6, porque AGP 8.13 es incompatible. Si falta la plataforma 36, Gradle la descarga durante la primera compilación.
+
+```powershell
+Set-Location mobile
+npm.cmd ci
+npm.cmd run build
+npx.cmd cap sync android
+$env:JAVA_HOME = "$env:USERPROFILE\.jdks\jdk-21.0.13.1+2"   # ruta del JDK 21 instalado
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+Set-Location android
+.\gradlew.bat :app:assembleDebug
+```
+
+Pruebas del módulo `:app` (desde `mobile/android`, con las mismas variables de entorno):
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest            # pruebas locales (actualmente sin fuentes)
+& "$env:ANDROID_HOME\platform-tools\adb.exe" devices   # debe listar un emulador o dispositivo
+.\gradlew.bat :app:connectedDebugAndroidTest    # pruebas instrumentadas en el dispositivo
+```
+
+La prueba instrumentada `AppContextInstrumentedTest` verifica que el paquete instalado sea `com.neiderlizcano.gestorpedidos.ionic`. El 25/11/2026 pasó en el AVD API 37 (1 de 1); el informe queda en `app/build/reports/androidTests/connected/debug/`.
+
+Usar siempre el prefijo `:app:`. La tarea global `connectedDebugAndroidTest` también recorre el módulo generado `capacitor-cordova-android-plugins` y falla en `checkDebugAndroidTestDuplicateClasses`: su classpath de pruebas mezcla `kotlin-stdlib` 1.8.22 con `kotlin-stdlib-jdk7/jdk8` 1.6.21. Ese módulo no contiene pruebas y `npx cap sync` lo regenera, por lo que no se modifica.
+
+- La APK queda en `mobile/android/app/build/outputs/apk/debug/app-debug.apk` y está excluida de Git. Para instalarla: `adb install -r` con esa ruta.
+- Para abrir el proyecto en Android Studio: `npx.cmd cap open android`. Android Studio crea `local.properties` con la ruta del SDK; ese archivo tampoco se versiona.
+- `npx.cmd cap sync android` copia `dist/` a `app/src/main/assets/public` y regenera la configuración nativa. Esos archivos se generan y no se versionan; el resto de `mobile/android/` sí se versiona para que el proyecto sea reproducible.
+- Las variables `VITE_*` se fijan al compilar: después de cambiar `.env.local` hay que repetir `npm.cmd run build` y `npx.cmd cap sync android`.
+
+En PowerShell con política `Restricted` no se pueden ejecutar scripts `.ps1`, como `npm.ps1` o `npx.ps1`. Por eso se usan `npm.cmd`, `npx.cmd`, `.\gradlew.bat` y `adb.exe`, que no dependen de esa política.
+
+### Solicitudes HTTP en Android y CORS
+
+- `capacitor.config.ts` activa `CapacitorHttp`. Dentro de la app, `fetch` se reemplaza por una solicitud nativa de Android, sin pasar por las reglas CORS del WebView. En el emulador, logcat lo confirma con `Handling CapacitorHttp request: …/_capacitor_http_interceptor_?u=https://gestor-pedidos-api.onrender.com/actuator/health`.
+- Esto es necesario. En una prueba del 24/11/2026, el backend en Render no devolvió cabeceras `Access-Control-Allow-*` para ningún origen probado: `https://localhost` (el origen del WebView), `http://localhost:5174` y uno ajeno. Además, el preflight `OPTIONS` respondió 401. Un `fetch` del WebView sin `CapacitorHttp` sería bloqueado.
+- El servidor de desarrollo web no tiene este problema porque usa el proxy de Vite.
+- **Arranque en frío medido** en la misma fecha desde un equipo de escritorio, no desde la app:
+  - Primer intento: sin respuesta en 90 s.
+  - Segundo intento: HTTP 200 `UP` en unos 20 s.
+  - Siguientes intentos: unos 0,5 s.
+- La app espera 30 s, así que durante un arranque en frío lo esperable es «Tiempo de espera agotado», y un nuevo intento debería responder.
+- Spring Security responde 401 a rutas desconocidas, así que una URL base equivocada dentro del mismo backend aparece como «Error del servidor (HTTP 401)» y no como 404.
+
+### Verificación en emulador (24/11/2026)
+
+Prueba con la APK debug en el AVD `Medium_Phone_API_37.0` (Android API 37) contra Render real:
+
+| Escenario | Resultado observado |
+| --- | --- |
+| Servicio activo | «Disponible», HTTP 200, entre 515 y 1690 ms. El servicio ya estaba despierto, así que no se observó un arranque en frío desde la app |
+| Wifi y datos desactivados | «Sin conexión», sin tiempo de respuesta; la región accesible anuncia el mensaje |
+| Host no enrutable (compilación temporal con `VITE_NATIVE_API_BASE_URL=https://10.255.255.1`) | Android abandona la conexión a los ~21 s (`Failed to connect`) y la app muestra «Sin conexión» antes del plazo de 30 s |
+| Latencia de 40 s con `adb emu network delay` | La imagen API 37 no aplicó la latencia, así que no sirvió para provocar el tiempo agotado |
+| Navegación | Inicio → «Acerca de» → el botón «Volver» de la barra regresa a Inicio, igual que el botón Atrás del sistema. En Inicio, Atrás pasa la app a segundo plano sin cerrarla y al reabrirla conserva el estado |
+
+- El estado «Tiempo de espera agotado» (servidor que acepta la conexión pero tarda más de 30 s) está cubierto por las pruebas unitarias. No se reprodujo en el dispositivo.
+- La interceptación de `CapacitorHttp` no recibe el `AbortSignal`: la app informa el tiempo agotado a los 30 s, pero la solicitud nativa puede seguir abierta hasta que Android la cierre.
 
 ---
 

@@ -16,6 +16,8 @@
     "cap:sync": "npm run build && cap sync"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.6.2",
     "@ionic/vue": "^9.0.13",
     "@ionic/vue-router": "^9.0.13",
