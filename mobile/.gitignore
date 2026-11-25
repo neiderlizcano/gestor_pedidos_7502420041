@@ -1,0 +1,18 @@
+# Dependencias, compilaciones y reportes
+node_modules/
+dist/
+coverage/
+*.log
+
+# Secretos y configuración local; solo se publica la plantilla
+.env
+.env.*
+!.env.example
+
+# Resultados generados por las plataformas nativas de Capacitor
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+ios/App/Pods/
+ios/App/build/

@@ -1,0 +1,40 @@
+/* Paleta de la app. Los textos superan 4.5:1 sobre el fondo claro (WCAG AA) */
+:root {
+  --ion-color-primary: #1f4e79;
+  --ion-color-primary-rgb: 31, 78, 121;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #1b456a;
+  --ion-color-primary-tint: #356087;
+
+  --ion-color-secondary: #f39c12;
+  --ion-color-secondary-rgb: 243, 156, 18;
+  --ion-color-secondary-contrast: #000000;
+  --ion-color-secondary-contrast-rgb: 0, 0, 0;
+  --ion-color-secondary-shade: #d68910;
+  --ion-color-secondary-tint: #f4a62a;
+
+  --ion-font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --ion-background-color: #f5f7fa;
+  --ion-text-color: #1a1d21;
+
+  /* Texto de estado: más oscuro que los colores Ionic por defecto */
+  --app-text: #1a1d21;
+  --app-text-muted: #4a5260;
+  --app-success-text: #1b6e2f;
+  --app-warning-text: #8a4b00;
+  --app-danger-text: #b3261e;
+}
+
+/* Oculto a la vista, pero disponible para lectores de pantalla */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

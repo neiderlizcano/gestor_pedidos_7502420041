@@ -4,7 +4,25 @@ Thumbs.db
 .DS_Store
 # Configuracion y herramientas locales
 AGENTS.md
+CLAUDE.md
+GEMINI.md
 opencode.json
+.agents/
+.claude/
+.codex/
+.gemini/
+.opencode/
+.cursor/
+.windsurf/
+.aider*
+.continue/
+.copilot/
+.vscode/
+.idea/
+
+# Ionic/Capacitor: dependencias y compilados (mobile/.gitignore cubre el resto)
+/mobile/node_modules/
+/mobile/dist/
 /CERTIFICADO_SUPABASE/
 /.postman/
 /postman/

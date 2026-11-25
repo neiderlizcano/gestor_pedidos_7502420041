@@ -8,6 +8,7 @@ Gestor de Pedidos administra pedidos y el perfil propio de cada usuario mediante
 
 | Componente | Entrega y acceso |
 | --- | --- |
+| **Unidad 4: Ionic Vue (en desarrollo)** | Ionic Vue 9, TypeScript y Capacitor 8 con arquitectura hexagonal en `mobile/`. [Instalación, variables, pruebas y compilación](#unidad-4--cliente-ionic-vue-mobile). |
 | **Unidad 3: Android nativo** | Kotlin, Jetpack Compose y Material 3. [Código, instalación, configuración y pruebas](android/README.md). Abrir `android/` en Android Studio. |
 | **Unidad 2: Kodular** | Entrega V9 preservada: [APK](app/GestorPedidos_V9.apk), [fuente AIA](app/GestorPedidos_V9.aia) e [informe histórico](docs/ENTREGA_V9.md). Su documentación completa se conserva más abajo. |
 | **Backend compartido** | Spring Boot con arquitectura hexagonal. [Despliegue y ejecución](backend/DESPLIEGUE_RENDER.md), [usuarios](backend/API_USUARIOS.md) y [pedidos](backend/API_PEDIDOS.md). |
@@ -59,6 +60,7 @@ La ubicación solo se solicita al pulsar **Usar mi ubicación** en Crear o Actua
 ## Estructura del repositorio
 
 ```text
+mobile/        Cliente Ionic Vue + Capacitor de Unidad 4, pruebas Vitest
 android/       Aplicación Kotlin, recursos, pruebas, Gradle Wrapper y APK en apk/
 backend/       Spring Boot hexagonal, pruebas y documentación REST
 database/      Esquema PostgreSQL, RLS y documentación de cuenta
@@ -112,6 +114,71 @@ Las ejecuciones instrumentadas anteriores y dirigidas no se suman como casos ind
 - **Word/PDF Unidad 3:** pendiente de archivo público verificado con nombre completo, código estudiantil, correo institucional, ejercicio, actividad y enlaces de repositorio/video.
 
 Los archivos publicables se entregan mediante operaciones Git revisadas. No se incluyen credenciales, sesiones Postman, configuración del equipo ni archivos internos de herramientas.
+
+---
+
+## Unidad 4 — Cliente Ionic Vue (`mobile/`)
+
+Infraestructura inicial del cliente multiplataforma. Por ahora la pantalla de inicio comprueba `GET /actuator/health` del backend en Render y muestra el resultado; las funciones de pedidos y perfil se incorporarán en los siguientes cortes. La plataforma Android de Capacitor aún no está agregada.
+
+### Arquitectura
+
+```text
+mobile/src/
+  domain/        Modelo (ApiStatus), puertos de salida y errores; sin dependencias de frameworks
+  application/   Puertos de entrada (casos de uso) y servicios
+  adapters/      Implementaciones HTTP de los puertos
+  bootstrap/     Configuración de la API y composición de dependencias
+  presentation/  App, router, vistas Ionic, tema y mensajes
+mobile/tests/    Pruebas unitarias con Vitest
+```
+
+### Requisitos
+
+- Node.js 24 (LTS) y npm 11 o superior.
+- Para Android (corte C4-02): Android Studio y JDK compatibles con Capacitor 8.
+
+### Instalación
+
+```powershell
+Set-Location mobile
+npm ci
+Copy-Item .env.example .env.local
+```
+
+`npm ci` instala exactamente las versiones de `package-lock.json`. El archivo `.env.local` está excluido de Git.
+
+### Variables de entorno
+
+Todas las variables `VITE_*` son públicas: Vite las incrusta en el código compilado. No se deben colocar claves privadas, tokens ni contraseñas.
+
+| Variable | Uso | Valor por defecto |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | Base de la API en el navegador. Vacía = mismo origen, atendido por el proxy de Vite | vacía |
+| `VITE_NATIVE_API_BASE_URL` | URL HTTPS absoluta del backend para la app nativa; no usa el proxy de Vite | `https://gestor-pedidos-api.onrender.com` |
+| `API_PROXY_TARGET` | Destino del proxy de `npm run dev` y `npm run preview`; no llega a la app | `https://gestor-pedidos-api.onrender.com` |
+
+Si `VITE_NATIVE_API_BASE_URL` no es una URL HTTPS absoluta, la app nativa abre igualmente y muestra «Configuración inválida» en lugar de intentar la conexión.
+
+### Ejecución, pruebas y compilación
+
+| Comando | Resultado |
+| --- | --- |
+| `npm run dev` | Servidor de desarrollo en `http://localhost:5174` con proxy hacia el backend |
+| `npm test` | Pruebas unitarias (Vitest) de configuración, adaptador HTTP, servicio y mensajes |
+| `npm run typecheck` | Verificación de tipos con `vue-tsc` |
+| `npm run build` | Verificación de tipos y compilación web en `mobile/dist/` |
+| `npm run preview` | Sirve `dist/` en `http://localhost:4174` con el mismo proxy |
+
+La primera consulta puede tardar mientras Render despierta el servicio gratuito; la app distingue servicio disponible, caído, HTTP 503, HTTP 404, otros códigos HTTP, respuestas no válidas, tiempo agotado y falta de conexión. El plazo de 30 segundos cubre tanto la llegada de las cabeceras como la lectura completa del cuerpo.
+
+### Proxy de desarrollo y despliegue web
+
+- `npm run dev` y `npm run preview` reenvían `/actuator` y `/api` a `API_PROXY_TARGET` mediante el proxy configurado en `vite.config.ts`.
+- La compilación estática de `mobile/dist/` no incluye ese proxy: fuera de Vite, una base vacía apunta al mismo servidor que entrega los archivos.
+- Un hosting web necesitaría redirigir las rutas de la SPA (`/inicio`, `/acerca`, …) a `index.html` para que recargar o abrir un enlace directo no devuelva 404.
+- Las peticiones a la API requerirían un proxy del propio hosting hacia el backend, o bien definir `VITE_API_BASE_URL` con una URL HTTPS absoluta cuyo backend permita ese origen mediante CORS.
+- El objetivo principal del Corte 4 es generar la aplicación Android con Capacitor, que usa `VITE_NATIVE_API_BASE_URL` y no depende del proxy. El hosting web público no está configurado todavía.
 
 ---
 
