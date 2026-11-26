@@ -1,4 +1,4 @@
-import { ConfigurationError } from '../domain/exceptions/errors';
+import { parsePublicOrigin } from './public-url';
 
 export const DEFAULT_NATIVE_API_BASE_URL = 'https://gestor-pedidos-api.onrender.com';
 
@@ -7,26 +7,16 @@ export interface ApiEnv {
   readonly VITE_NATIVE_API_BASE_URL?: string;
 }
 
-const trimSlash = (url: string) => url.replace(/\/+$/, '');
-
-// En Android no existe el proxy de Vite: la URL debe ser HTTPS y absoluta
+// En Android no existe el proxy de Vite: origen HTTPS absoluto
 export function resolveNativeBaseUrl(raw: string | undefined): string {
-  const value = raw?.trim() || DEFAULT_NATIVE_API_BASE_URL;
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    throw new ConfigurationError('VITE_NATIVE_API_BASE_URL debe ser una URL absoluta.');
-  }
-  if (url.protocol !== 'https:') {
-    throw new ConfigurationError('VITE_NATIVE_API_BASE_URL debe usar HTTPS.');
-  }
-  return trimSlash(url.origin + url.pathname);
+  return parsePublicOrigin('VITE_NATIVE_API_BASE_URL', raw?.trim() || DEFAULT_NATIVE_API_BASE_URL);
 }
 
 // En el navegador, una base vacía deja que el proxy de Vite atienda /actuator y /api
+// (única excepción de desarrollo local); cualquier otro valor debe ser un origen HTTPS
 export function resolveWebBaseUrl(raw: string | undefined): string {
-  return trimSlash(raw?.trim() ?? '');
+  const value = raw?.trim() ?? '';
+  return value ? parsePublicOrigin('VITE_API_BASE_URL', value) : '';
 }
 
 export function resolveApiBaseUrl(isNative: boolean, env: ApiEnv): string {

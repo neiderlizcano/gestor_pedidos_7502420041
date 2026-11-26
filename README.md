@@ -125,10 +125,10 @@ Infraestructura inicial del cliente multiplataforma. Por ahora la pantalla de in
 
 ```text
 mobile/src/
-  domain/        Modelo (ApiStatus), puertos de salida y errores; sin dependencias de frameworks
-  application/   Puertos de entrada (casos de uso) y servicios
-  adapters/      Implementaciones HTTP de los puertos
-  bootstrap/     Configuración de la API y composición de dependencias
+  domain/        Modelos (ApiStatus, AuthSession), puertos AuthGateway/SessionStore y errores tipados; sin frameworks
+  application/   Puertos de entrada (casos de uso) y servicios de salud y sesión
+  adapters/      HTTP, Supabase Auth y almacenamiento de sesión (memoria y Android cifrado)
+  bootstrap/     Configuración pública y composición de dependencias
   presentation/  App, router, vistas Ionic, tema y mensajes
 mobile/tests/    Pruebas unitarias con Vitest
 ```
@@ -150,22 +150,93 @@ Copy-Item .env.example .env.local
 
 ### Variables de entorno
 
-Todas las variables `VITE_*` son públicas: Vite las incrusta en el código compilado. No se deben colocar claves privadas, tokens ni contraseñas.
+Solo llegan al cliente las cuatro variables `VITE_*` de esta tabla (lista cerrada en `src/bootstrap/public-env.ts`). Son públicas: quedan incrustadas en el código compilado. No se deben colocar claves privadas, tokens ni contraseñas.
 
 | Variable | Uso | Valor por defecto |
 | --- | --- | --- |
-| `VITE_API_BASE_URL` | Base de la API en el navegador. Vacía = mismo origen, atendido por el proxy de Vite | vacía |
-| `VITE_NATIVE_API_BASE_URL` | URL HTTPS absoluta del backend para la app nativa; no usa el proxy de Vite | `https://gestor-pedidos-api.onrender.com` |
+| `VITE_API_BASE_URL` | Base de la API en el navegador. Vacía = mismo origen, atendido por el proxy de Vite (única excepción de desarrollo); si tiene valor, debe ser un origen HTTPS | vacía |
+| `VITE_NATIVE_API_BASE_URL` | Origen HTTPS del backend para la app nativa; no usa el proxy de Vite | `https://gestor-pedidos-api.onrender.com` |
+| `VITE_SUPABASE_URL` | Raíz HTTPS del proyecto Supabase, sin `/auth/v1` | sin valor |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Clave `sb_publishable_…` o JWT heredado con `role: anon` | sin valor |
 | `API_PROXY_TARGET` | Destino del proxy de `npm run dev` y `npm run preview`; no llega a la app | `https://gestor-pedidos-api.onrender.com` |
 
-Si `VITE_NATIVE_API_BASE_URL` no es una URL HTTPS absoluta, la app nativa abre igualmente y muestra «Configuración inválida» en lugar de intentar la conexión.
+Si `VITE_NATIVE_API_BASE_URL` no es una URL HTTPS absoluta, la app nativa abre igualmente y muestra «Configuración inválida» en lugar de intentar la conexión. Sin variables de Supabase la app compila y la autenticación queda en `MISCONFIGURED`; el resto de la app sigue funcionando.
+
+**Exposición de variables:** `vite.config.ts` desactiva la exposición automática de Vite con `envPrefix: []`, que Vite 7.3 admite. Publica solo la lista cerrada, ya validada y normalizada, mediante `define` (`__GESTOR_PUBLIC_ENV__`). `import.meta.env` no contiene variables `VITE_*`.
+- Las tres URL públicas (`VITE_API_BASE_URL`, `VITE_NATIVE_API_BASE_URL` y `VITE_SUPABASE_URL`) se validan antes de publicarse con `parsePublicOrigin`.
+  - Deben ser un origen HTTPS: sin usuario, contraseña, parámetros, fragmentos ni ruta.
+  - Si una no cumple, el servidor de desarrollo o el build se detienen antes de servir o compilar. El error nombra la variable, sin mostrar su valor.
+- Cualquier otra `VITE_*` se ignora. La consola del build muestra su nombre, nunca su valor.
+- `public-env-exposure.spec.ts` lo comprueba con valores sintéticos en dos sitios:
+  - los recursos que sirve un servidor de desarrollo real (`/`, `/@vite/env`, `/@vite/client` y los módulos de arranque);
+  - el JavaScript de un build de producción.
+- Con la configuración anterior (prefijo `VITE_` y `import.meta.env` completo) esa prueba falla en ambos casos.
+
+**Comprobación previa al build:** `buildPublicEnv` se ejecuta antes de `dev` y `build`, y detiene el proceso si:
+- cualquier variable `VITE_*` contiene `sb_secret_…` o un JWT con `role: service_role`;
+- la configuración de Supabase está a medias o es inválida. Solo se aceptan una URL `https://` sin credenciales, ruta ni parámetros, y una clave `sb_publishable_…` o un JWT heredado con `role: anon` (si declara `ref`, debe coincidir con el proyecto).
+
+Leer el payload del JWT solo indica qué tipo de clave declara; no comprueba su firma ni prueba que sea auténtica.
+
+### Autenticación y almacenamiento de sesión
+
+Infraestructura preparada en C4-03B; las pantallas de inicio de sesión llegan en el siguiente corte.
+
+- **Contratos:** `AuthGateway` y `SessionStore` (dominio), `AuthUseCases` y `AuthApplicationService` (aplicación).
+  - **Estados de sesión:** `initializing`, `signedOut`, `signedIn` y `unavailable`. Este último indica que no se pudo confirmar lo guardado, por red o por almacenamiento, y sin él no hay acceso privado.
+  - **Códigos de `AuthError`:** `INVALID_CREDENTIALS`, `EMAIL_NOT_CONFIRMED`, `RATE_LIMITED`, `SESSION_EXPIRED`, `CONFLICT`, `NETWORK`, `STORAGE`, `MISCONFIGURED` y `UNKNOWN`.
+- **Supabase:** `@supabase/supabase-js` 2.119 solo se usa dentro de `adapters/supabase/`.
+  - El SDK guarda la sesión mediante el `SessionStore` elegido y es el único que renueva el JWT (`autoRefreshToken`).
+  - En Android, la renovación se pausa en segundo plano y se reanuda al volver, con `@capacitor/app`.
+  - El dominio solo recibe identificador, correo y vencimiento, nunca los tokens.
+- **Clave de almacenamiento:** incluye el identificador del proyecto (`gestor-pedidos-auth:<ref>`), así que una sesión de otro proyecto no se reutiliza.
+- **Concurrencia:**
+  - **Cola de operaciones:** `AuthApplicationService` ejecuta inicializar, entrar, salir y reconciliar de una en una. Sin esa cola, el SDK deja ganar a la respuesta más tardía, lo que se reproduce en `auth-sdk-integration.spec.ts`.
+  - **Cambio de cuenta:** entrar con otra cuenta sin cerrar la actual se rechaza con `CONFLICT`.
+  - **Estado visible:** se deriva siempre de `getSession()`. Los eventos del SDK solo programan una nueva lectura; nunca se usa la sesión que traen.
+  - **Renovación durante un cierre:** la resuelve el propio SDK con su *commit guard*, que descarta los tokens rotados si el almacenamiento cambió (`AuthRefreshDiscardedError`). No hay un segundo gestor de renovación.
+- **Cierre de sesión:** usa `scope: 'local'`, así que el SDK borra la sesión del dispositivo antes de pedir la revocación al servidor. Los dos fallos se tratan por separado:
+  - **Borrado local fallido:** el SDK relanza el error del almacenamiento. El estado pasa a `unavailable` con `STORAGE` y el error se propaga. Mientras tanto, inicializar reintenta la invalidación en lugar de restaurar la sesión anterior, y no se permite entrar con otra cuenta.
+  - **Sesión local cerrada y verificada:** si al releer `getSession()` y el almacenamiento no queda sesión, `signOut()` resuelve con `{ localSession: 'closedAndVerified', remoteSignOut }`. Un fallo remoto nunca es `STORAGE`.
+  - **Valores de `remoteSignOut`:**
+    - `confirmed`: revocación confirmada con evidencia fiable;
+    - `unconfirmed`: no verificable;
+    - `notRequired`: no había sesión.
+  - **El adaptador de Supabase nunca devuelve `confirmed`:** supabase-js 2.119 trata HTTP 401, 403 y 404 de `/logout` como éxito (`error: null`), y no expone el código HTTP. Así que «sin error» no prueba la revocación, y con sesión previa el resultado siempre es `unconfirmed`, también ante 204, 429, 5xx o sin red. Por eso no se repite la revocación ni se usa otro cliente para averiguar el código.
+  - **Alcance de la revocación:** aunque el servidor revoque la sesión, los JWT de acceso ya emitidos siguen siendo válidos hasta que vencen.
+  - **Confirmación:** el servicio solo informa `signedOut` después de releer y comprobar que no queda sesión.
+- **Navegador:** `MemorySessionStore` guarda la sesión solo en memoria; al recargar la pestaña hay que iniciar sesión de nuevo. No se usan `localStorage`, `sessionStorage` ni Preferences.
+  - Cada pestaña usa una clave con un identificador aleatorio. El SDK nombra su `BroadcastChannel` con esa clave, así que dos pestañas no comparten eventos ni tokens.
+  - Esto se comprueba en `web-tab-isolation.spec.ts` con dos contextos JavaScript reales (`worker_threads`) y el SDK real. Con una clave compartida, la otra pestaña recibía `SIGNED_IN` con los tokens.
+- **Android:** el plugin local `SecureSessionStorage` (`mobile/android/app/src/main/java/.../securestorage/`):
+  - **Cifrado:** AES-256-GCM con una clave no exportable del Android Keystore **por elemento**, y el nombre lógico como dato autenticado.
+  - **Escritura:** archivo temporal con `fsync`, renombrado y relectura. Solo se confirma si lo leído coincide con lo escrito; si no, se rechaza con `STORAGE_ERROR`.
+  - **Borrado con marca persistente de invalidación:**
+    1. Escribe y verifica un archivo `<id>.revoked` con el SHA-256 del texto cifrado que se revoca.
+    2. Borra la clave del elemento y lo comprueba.
+    3. Borra el archivo y lo comprueba.
+    - **Resultado:** si clave y archivo desaparecen, retira la marca. Si no, pero la marca, la clave o el archivo quedaron confirmados, el valor ya no puede restaurarse: `remove` resuelve con `pendingCleanup: true` y la limpieza se completa al leer o escribir más tarde.
+    - **Sin ninguna confirmación** (ni marca, ni clave, ni archivo), rechaza con `STORAGE_ERROR`. En ese caso no hay garantía y la app no declara el logout.
+  - **Formato estricto de la marca:** solo es válida si es exactamente `revoked-v1:` seguido de 64 caracteres hexadecimales en minúscula, sin nada más.
+  - **Lectura:** comprueba la marca antes de descifrar o devolver nada.
+    - Responde `null` (falla cerrado) si la marca es inválida, está vacía, truncada o es ilegible, si coincide con el archivo actual, o si este no se puede leer.
+    - Una marca inválida nunca se interpreta como el resumen de otro valor.
+    - La lectura no retira marcas. La limpieza solo las retira cuando la clave y el archivo revocados ya no existen.
+  - **Sesión nueva:**
+    - Con una marca válida de un valor anterior, cada escritura usa otro IV y otro resumen, así que la marca no la bloquea. Solo se retira después de confirmar, con `read()`, la sesión nueva.
+    - Con una marca inválida, antes de escribir se borra el material revocado. Si no se puede, la escritura se rechaza y la marca se conserva.
+  - **Recuperación:** si un archivo está dañado, alterado, movido a otro nombre o sin su clave, descarta los datos y responde `null` con `recovered: true`.
+  - **Ubicación:** `noBackupFilesDir/secure_session`, fuera de las copias de seguridad.
+  - Se eligió un plugin local de unas 570 líneas de Java en lugar de uno externo para no depender del mantenimiento de terceros en el código que maneja los tokens.
+- **Alcance del cifrado:** protege los tokens **en reposo**. El SDK de JavaScript los mantiene en la memoria de la WebView mientras la app está abierta, y el puente de Capacitor los transporta entre la WebView y el plugin.
+- **Registros:** `capacitor.config.ts` fija `loggingBehavior: 'none'`. En compilaciones debug, Capacitor escribe en logcat los argumentos y respuestas de cada plugin, lo que incluiría la sesión. Los adaptadores tampoco registran contraseñas, OTP ni tokens; los errores solo muestran su código. Para depurar la WebView se puede usar `chrome://inspect`.
 
 ### Ejecución, pruebas y compilación
 
 | Comando | Resultado |
 | --- | --- |
 | `npm run dev` | Servidor de desarrollo en `http://localhost:5174` con proxy hacia el backend |
-| `npm test` | Pruebas unitarias (Vitest) de configuración, adaptador HTTP, servicio y mensajes |
+| `npm test` | Pruebas (Vitest) de configuración, salud, autenticación, adaptador Supabase y almacenamiento. Incluye pruebas con el SDK real contra un servidor de Auth simulado y dos contextos en hilos separados |
 | `npm run typecheck` | Verificación de tipos con `vue-tsc` |
 | `npm run build` | Verificación de tipos y compilación web en `mobile/dist/` |
 | `npm run preview` | Sirve `dist/` en `http://localhost:4174` con el mismo proxy |
@@ -187,7 +258,7 @@ La primera consulta puede tardar mientras Render despierta el servicio gratuito;
 | Identificador | `com.neiderlizcano.gestorpedidos.ionic` (distinto del APK nativo de Unidad 3) |
 | Nombre visible | Gestor de Pedidos |
 | Permisos | Solo `INTERNET` |
-| Plugins nativos | `@capacitor/app`: botón Atrás del sistema. Ionic lo usa para navegar y, en la pantalla raíz, `App.minimizeApp()` envía la app a segundo plano |
+| Plugins nativos | `@capacitor/app`: botón Atrás del sistema y ciclo de vida para pausar la renovación de sesión. Ionic lo usa para navegar y, en la pantalla raíz, `App.minimizeApp()` envía la app a segundo plano. Plugin local `SecureSessionStorage`: sesión cifrada con el Keystore |
 | Herramientas del template | Capacitor 8.6, Android Gradle Plugin 8.13.0 y Gradle Wrapper 8.14.3 |
 
 **JDK:** Capacitor 8 compila con Java 21, y Gradle 8.14.3 solo se ejecuta sobre JDK 17–24. El JDK 25 que incluyen las versiones recientes de Android Studio falla con `Unsupported class file major version 69`, y el JDK 17 no admite el nivel 21. Instalar un JDK 21 (por ejemplo Temurin 21) y apuntar `JAVA_HOME` a él solo en la sesión de compilación. No se debe subir el wrapper a Gradle 9.6, porque AGP 8.13 es incompatible. Si falta la plataforma 36, Gradle la descarga durante la primera compilación.
@@ -211,7 +282,35 @@ Pruebas del módulo `:app` (desde `mobile/android`, con las mismas variables de 
 .\gradlew.bat :app:connectedDebugAndroidTest    # pruebas instrumentadas en el dispositivo
 ```
 
-La prueba instrumentada `AppContextInstrumentedTest` verifica que el paquete instalado sea `com.neiderlizcano.gestorpedidos.ionic`. El 25/11/2026 pasó en el AVD API 37 (1 de 1); el informe queda en `app/build/reports/androidTests/connected/debug/`.
+El informe queda en `app/build/reports/androidTests/connected/debug/`. El 25/11/2026, en el AVD API 37, pasaron 36 pruebas y se omitieron 2: las fases de reinicio, que se ejecutan aparte.
+
+- `AppContextInstrumentedTest`: verifica que el paquete instalado sea `com.neiderlizcano.gestorpedidos.ionic`.
+- `SecureFileStoreInstrumentedTest`: usa el Keystore real con un prefijo de prueba. Los fallos de disco y del Keystore se simulan con `FaultyStorage` (subclases de `StorageFiles` y `KeystoreKeyProvider`). Cubre:
+  - **Operaciones básicas:** escritura, lectura, sobrescritura, borrado completo (clave, archivo y marca), claves independientes por elemento y lectura desde instancias nuevas del almacén;
+  - **Contenido en disco:** solo texto cifrado;
+  - **Fallos de escritura:** fallo de escritura o de renombrado, que conservan el valor anterior sin dejar temporales, y un renombrado que informa éxito sin hacerlo;
+  - **Doble fallo de borrado** (clave y archivo): la marca bloquea la lectura posterior y la reapertura, y la limpieza se completa cuando el almacenamiento responde;
+  - **Marca imposible de retirar:** sigue vigente en lecturas repetidas, pero no impide guardar una sesión nueva;
+  - **Marcas inválidas** (vacía, solo `revoked-v1:`, resumen incompleto, caracteres no hexadecimales, mayúsculas, salto de línea final, prefijo distinto, o ilegible por ser un directorio): fallan cerrado en la lectura y en la reapertura, y no se retiran mientras el material revocado exista. Con almacenamiento sano, se borra el material y después la marca. Una sesión nueva se rechaza mientras la marca inválida no se pueda resolver;
+  - **Marca válida:** bloquea el valor que revoca y se retira solo después de confirmar una sesión nueva;
+  - **Triple fallo** (marca, clave y archivo): se informa sin declarar éxito;
+  - **Borrado parcial:** archivo sobrante sin clave, o clave sobrante sin archivo;
+  - **Datos dañados:** archivo alterado, truncado o movido de nombre;
+  - **Ubicación:** uso de `noBackupFilesDir`.
+- `ProcessRestartInstrumentedTest`: prueba con un **reinicio real del proceso**. Cada fase se lanza con una invocación distinta de `am instrument`, y la app se detiene entre ambas:
+  - **`prepare`:** guarda una sesión y la invalida con fallo doble de clave y archivo. La sesión y la marca quedan en disco.
+  - **`verify`:** desde el proceso nuevo, comprueba que la sesión no se restaura, que se completa la limpieza y que una sesión nueva se guarda y se lee.
+
+  Ambas fases pasaron el 25/11/2026. Para repetirlas:
+
+```powershell
+.\gradlew.bat :app:installDebug :app:installDebugAndroidTest
+$runner = "com.neiderlizcano.gestorpedidos.ionic.test/androidx.test.runner.AndroidJUnitRunner"
+$test = "com.neiderlizcano.gestorpedidos.ionic.securestorage.ProcessRestartInstrumentedTest"
+& "$env:ANDROID_HOME\platform-tools\adb.exe" shell am instrument -w -e restartPhase prepare -e class "$test#prepare" $runner
+& "$env:ANDROID_HOME\platform-tools\adb.exe" shell am force-stop com.neiderlizcano.gestorpedidos.ionic
+& "$env:ANDROID_HOME\platform-tools\adb.exe" shell am instrument -w -e restartPhase verify -e class "$test#verify" $runner
+```
 
 Usar siempre el prefijo `:app:`. La tarea global `connectedDebugAndroidTest` también recorre el módulo generado `capacitor-cordova-android-plugins` y falla en `checkDebugAndroidTestDuplicateClasses`: su classpath de pruebas mezcla `kotlin-stdlib` 1.8.22 con `kotlin-stdlib-jdk7/jdk8` 1.6.21. Ese módulo no contiene pruebas y `npx cap sync` lo regenera, por lo que no se modifica.
 
